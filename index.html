@@ -20,15 +20,6 @@
             width: 100%;
             height: 100%;
         }
-        /* Fullscreen kiosk mode */
-        body.fullscreen-kiosk {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-        }
         .app-container {
             width: 100%;
             height: 100%;
@@ -104,6 +95,9 @@
             width: 100%;
             margin-top: 1rem;
         }
+        .btn-outline {
+            background: #2e7d64;
+        }
         .warning {
             background: #2d2a1e;
             border-left: 4px solid #f4b942;
@@ -111,6 +105,7 @@
             border-radius: 0.8rem;
             font-size: 0.7rem;
             color: #ffe5b4;
+            margin-top: 0.8rem;
         }
         .generated-link {
             background: #0a1f1c;
@@ -123,7 +118,6 @@
         }
         .hidden { display: none; }
         
-        /* Lock overlay */
         .lock-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -146,7 +140,6 @@
             border: 1px solid #f97316;
         }
         
-        /* Wrapper iframe dengan overlay anti-copy */
         .exam-wrapper {
             position: relative;
             flex: 1;
@@ -154,6 +147,7 @@
             background: white;
             border-radius: 0.8rem;
             overflow: hidden;
+            height: 100%;
         }
         .exam-iframe {
             width: 100%;
@@ -161,30 +155,26 @@
             border: none;
             background: white;
         }
-        .anti-copy-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            z-index: 10;
-            pointer-events: none; /* Biarkan klik tetap ke iframe */
-        }
         
-        /* Mode ujian - sembunyikan scroll */
         .exam-mode .panel {
             padding: 0;
             display: flex;
             flex-direction: column;
-        }
-        .exam-mode .header {
-            padding: 0.5rem 0.8rem;
+            height: 100%;
         }
         
         @media (max-width: 700px) {
             .title { font-size: 0.85rem; }
             .logo-img { width: 35px; height: 35px; }
+        }
+        
+        .qr-info {
+            background: #1e3a37;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
         }
     </style>
 </head>
@@ -203,23 +193,31 @@
             <div class="card">
                 <h3 style="color:#e2f0ec; font-size:1rem;">📥 Masukkan Link Google Form</h3>
                 <input type="url" id="formLinkInput" placeholder="https://docs.google.com/forms/d/e/...">
-                <button id="generateBtn">🔒 GENERATE LINK UJIAN</button>
+                <button id="generateBtn">🔒 GENERATE LINK UJIAN AMAN</button>
                 <div id="generatedResult" class="hidden">
                     <div class="generated-link" id="secureLinkDisplay"></div>
-                    <button id="copyLinkBtn" class="btn-outline" style="background:#2e7d64;">📋 Salin Link</button>
-                    <div class="warning">✨ Buat QR Code dari link ini. Siswa scan → ujian aman.</div>
+                    <button id="copyLinkBtn" class="btn-outline">📋 Salin Link</button>
+                    <div class="qr-info">
+                        📱 Gunakan link di atas untuk membuat QR Code.<br>
+                        Tempel QR Code di kelas → siswa scan → langsung masuk mode ujian aman.
+                    </div>
+                    <div class="warning">
+                        ✅ Link hasil generate BUKAN link Google Form asli, melainkan link aplikasi pengaman ini.<br>
+                        Siswa akan melihat soal di dalam sistem proteksi (anti-copy, anti-screenshot, anti-keluar).
+                    </div>
                 </div>
             </div>
             <div class="warning">
-                🔑 Password guru: <strong>r4h4514</strong> (untuk generate & buka kunci pelanggaran)
+                🔑 Password guru: <strong>r4h4514</strong><br>
+                • Password digunakan untuk GENERATE link ujian<br>
+                • Password digunakan untuk MEMBUKA KUNCI jika siswa melanggar
             </div>
         </div>
 
         <!-- AREA UJIAN SISWA -->
         <div id="studentExamArea" class="hidden">
             <div class="exam-wrapper" id="examWrapper">
-                <iframe id="examIframe" class="exam-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups allow-top-navigation-by-user-activation"></iframe>
-                <div class="anti-copy-overlay"></div>
+                <iframe id="examIframe" class="exam-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups"></iframe>
             </div>
         </div>
     </div>
@@ -233,9 +231,9 @@
     let currentMode = "guru";
     let examLocked = false;
     let studentExamActive = false;
-    let violationInterval;
     let lastBlurTime = 0;
     let fullscreenCheckInterval;
+    let violationInterval;
     
     // DOM
     const guruSection = document.getElementById('guruSection');
@@ -249,8 +247,9 @@
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     const appContainer = document.getElementById('app');
     
-    // ======================= ENKRIPSI =======================
+    // ======================= ENKRIPSI SEDERHANA =======================
     function simpleEncrypt(url) {
+        // Enkripsi base64 + reverse + salt
         let text = url + "||" + Date.now();
         let encoded = btoa(unescape(encodeURIComponent(text)));
         let reversed = encoded.split('').reverse().join('');
@@ -267,43 +266,73 @@
             let urlPart = original.split("||")[0];
             if (urlPart && urlPart.includes("docs.google.com/forms")) return urlPart;
             return null;
-        } catch(e) { return null; }
+        } catch(e) { 
+            console.error("Decrypt error:", e);
+            return null; 
+        }
     }
     
+    // ======================= GENERATE LINK AMAN =======================
     function generateSecureLink(formUrl) {
         if (!formUrl.includes("docs.google.com/forms")) {
-            alert("Link harus Google Form yang valid!");
+            alert("❌ Link harus Google Form yang valid!\nContoh: https://docs.google.com/forms/d/e/...");
             return null;
         }
+        
+        // Enkripsi URL Google Form
         const encrypted = simpleEncrypt(formUrl);
+        
+        // Buat link ke aplikasi ini dengan parameter terenkripsi
         const baseUrl = window.location.href.split('?')[0].split('#')[0];
-        return `${baseUrl}?exam=${encodeURIComponent(encrypted)}`;
+        const secureLink = `${baseUrl}?exam=${encodeURIComponent(encrypted)}`;
+        
+        console.log("Generated secure link:", secureLink);
+        return secureLink;
     }
     
     // ======================= MODE GURU =======================
     generateBtn.onclick = () => {
-        let pwd = prompt("🔐 PASSWORD GURU untuk generate link:");
+        let pwd = prompt("🔐 MASUKKAN PASSWORD GURU untuk generate link aman:");
         if (pwd !== MASTER_PASSWORD) {
-            alert("Password salah!");
+            alert("❌ Password salah! Hanya guru yang bisa membuat link ujian.");
             return;
         }
+        
         const url = formLinkInput.value.trim();
-        if (!url) return alert("Isi link Google Form");
+        if (!url) {
+            alert("⚠️ Isi link Google Form terlebih dahulu!");
+            return;
+        }
+        
         const secureLink = generateSecureLink(url);
         if (secureLink) {
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
+            
+            // Tampilkan pesan sukses
+            const successMsg = document.createElement('div');
+            successMsg.className = 'warning';
+            successMsg.style.background = '#1e4a3a';
+            successMsg.style.borderLeftColor = '#2ecc71';
+            successMsg.innerHTML = '✅ LINK BERHASIL DIGENERATE! Link ini AMAN dan sudah terproteksi.';
+            generatedResult.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 5000);
+        } else {
+            alert("❌ Gagal generate link. Periksa kembali URL Google Form.");
         }
     };
     
     copyLinkBtn.onclick = () => {
-        navigator.clipboard.writeText(secureLinkDisplay.innerText);
-        alert("Link disalin!");
+        const link = secureLinkDisplay.innerText;
+        navigator.clipboard.writeText(link);
+        alert("✅ Link disalin! Gunakan untuk membuat QR Code.");
     };
     
-    // ======================= KUNCI PELANGGARAN =======================
+    // ======================= FUNGSI KUNCI PELANGGARAN =======================
     function triggerViolation(reason) {
         if (!studentExamActive || examLocked) return;
+        
+        console.warn("🔴 VIOLATION:", reason);
         examLocked = true;
         studentExamActive = false;
         
@@ -311,13 +340,17 @@
         if (violationInterval) clearInterval(violationInterval);
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         
-        // Tampilkan overlay kunci
+        // Keluar dari fullscreen
+        if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+        
+        // Tampilkan layar kunci
         showLockScreen(reason);
     }
     
     function showLockScreen(reason) {
         let existing = document.getElementById('lockOverlay');
         if(existing) existing.remove();
+        
         const overlay = document.createElement('div');
         overlay.id = 'lockOverlay';
         overlay.className = 'lock-overlay';
@@ -326,92 +359,90 @@
                 <span style="font-size:3rem;">🔒⚠️</span>
                 <h2 style="color:#ffb347">UJIAN TERKUNCI!</h2>
                 <p style="color:#ccc; font-size:0.8rem;">Pelanggaran: ${reason}</p>
-                <p style="color:#aaa; font-size:0.7rem; margin-top:0.5rem;">Hubungi guru untuk membuka kunci</p>
+                <p style="color:#aaa; font-size:0.7rem; margin-top:0.5rem;">
+                    Siswa tidak bisa melanjutkan ujian.<br>
+                    Hubungi guru untuk membuka kunci.
+                </p>
                 <input type="password" id="unlockPassword" placeholder="Password Guru" style="margin-top:1rem;">
-                <button id="submitUnlockBtn">BUKA KUNCI</button>
+                <button id="submitUnlockBtn">🔓 BUKA KUNCI</button>
             </div>
         `;
         document.body.appendChild(overlay);
+        
         document.getElementById('submitUnlockBtn').onclick = () => {
             const pwd = document.getElementById('unlockPassword').value;
             if (pwd === MASTER_PASSWORD) {
                 overlay.remove();
+                // Reload halaman untuk memulai ulang ujian
                 window.location.reload();
             } else {
-                alert("Password salah! Hanya guru yang bisa membuka.");
+                alert("❌ Password salah! Hanya guru yang bisa membuka kunci.");
             }
         };
     }
     
-    // ======================= DETEKSI PELANGGARAN SISWA =======================
-    function startViolationDetection() {
-        // 1. Blokir semua event copy/paste/contextmenu di seluruh halaman
-        const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart', 'keydown'];
+    // ======================= PROTEKSI SISWA =======================
+    function startStudentProtection() {
+        // 1. Blokir semua event copy/paste/contextmenu
+        const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
                 if (studentExamActive && !examLocked) {
-                    if (ev === 'keydown') {
-                        // Cegah shortcut berbahaya
-                        if ((e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) ||
-                            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
-                            e.key === 'F12' || e.key === 'F5' || (e.ctrlKey && e.key === 'r') ||
-                            e.key === 'Escape' || e.key === 'Home' || e.key === 'Meta') {
-                            e.preventDefault();
-                            triggerViolation(`Shortcut ilegal (${e.key})`);
-                        }
-                    } else {
-                        e.preventDefault();
-                        triggerViolation(`Percobaan ${ev}`);
-                    }
+                    e.preventDefault();
+                    triggerViolation(`Percobaan ${ev}`);
                 }
             });
         });
         
-        // 2. Deteksi keluar tab / pindah aplikasi (termasuk screenshot dengan tombol fisik)
-        let lastVisibility = !document.hidden;
+        // 2. Blokir shortcut berbahaya
+        window.addEventListener('keydown', (e) => {
+            if (!studentExamActive || examLocked) return;
+            
+            const dangerousKeys = [
+                'F12', 'F5', 'Escape', 'Home', 'End',
+                'c', 'C', 'p', 'P', 's', 'S', 'u', 'U'
+            ];
+            
+            if ((e.ctrlKey && dangerousKeys.includes(e.key)) ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+                e.key === 'F12' || e.key === 'F5' || e.key === 'Escape') {
+                e.preventDefault();
+                triggerViolation(`Shortcut ilegal (${e.key})`);
+            }
+        });
+        
+        // 3. Deteksi keluar tab / pindah aplikasi
         setInterval(() => {
             if (!studentExamActive || examLocked) return;
-            const now = Date.now();
+            
             if (document.hidden) {
-                // Tab tidak terlihat = pindah aplikasi atau buka kontrol
                 triggerViolation("Pindah tab / buka aplikasi lain");
             }
-            // Deteksi blur window (kehilangan fokus)
-            if (!document.hasFocus() && !examLocked) {
+            if (!document.hasFocus()) {
                 triggerViolation("Kehilangan fokus (keluar dari ujian)");
             }
-        }, 500);
+        }, 300);
         
-        // 3. Deteksi screenshot hardware di Android (tombol power+volume down)
-        // Metode: pantau perubahan visibility + blur yang sangat cepat (karakteristik screenshot)
-        let screenshotDetected = false;
+        // 4. Deteksi screenshot via blur+focus
         window.addEventListener('blur', () => {
-            if (studentExamActive && !examLocked && !screenshotDetected) {
+            if (studentExamActive && !examLocked) {
                 lastBlurTime = Date.now();
             }
         });
+        
         window.addEventListener('focus', () => {
-            if (studentExamActive && !examLocked && !screenshotDetected) {
-                const blurDuration = Date.now() - lastBlurTime;
-                // Blur cepat < 1 detik = indikasi screenshot atau buka quick panel
-                if (blurDuration > 100 && blurDuration < 800) {
+            if (studentExamActive && !examLocked && lastBlurTime > 0) {
+                const duration = Date.now() - lastBlurTime;
+                if (duration > 50 && duration < 1000) {
                     triggerViolation("Terdeteksi screenshot / buka panel kontrol");
                 }
             }
         });
         
-        // 4. Cegah print
+        // 5. Cegah print
         window.addEventListener('beforeprint', () => triggerViolation("Percobaan print"));
         
-        // 5. Cegah drag keluar
-        document.body.addEventListener('dragstart', (e) => {
-            if (studentExamActive && !examLocked) {
-                e.preventDefault();
-                triggerViolation("Drag & drop terlarang");
-            }
-        });
-        
-        // 6. Redirect jika mencoba buka link baru
+        // 6. Cegah keluar halaman
         window.addEventListener('beforeunload', (e) => {
             if (studentExamActive && !examLocked) {
                 e.preventDefault();
@@ -428,95 +459,108 @@
                 triggerViolation("Tombol back ditekan");
             }
         });
+        
+        // 8. Paksa fullscreen kiosk
+        forceFullscreenKiosk();
     }
     
-    // ======================= KIOSK FULLSCREEN (Paksa tanpa keluar) =======================
     function forceFullscreenKiosk() {
         const elem = document.documentElement;
-        const requestFullscreen = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
-        if (requestFullscreen) {
-            requestFullscreen.call(elem).catch(e => console.log("Fullscreen perlu interaksi"));
-        }
-        // Sembunyikan scroll dan buat body fixed
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
+        const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
         
-        // Pantau jika keluar fullscreen
-        const fullscreenChangeHandler = () => {
+        if (requestFS) {
+            requestFS.call(elem).catch(e => console.log("Fullscreen perlu interaksi"));
+        }
+        
+        // Pantau fullscreen
+        const fsHandler = () => {
             if (studentExamActive && !examLocked) {
-                const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
-                if (!isFullscreen) {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                if (!isFS) {
                     triggerViolation("Keluar dari mode fullscreen");
                 }
             }
         };
-        document.addEventListener('fullscreenchange', fullscreenChangeHandler);
-        document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+        document.addEventListener('fullscreenchange', fsHandler);
+        document.addEventListener('webkitfullscreenchange', fsHandler);
         
-        // Coba paksa setiap 2 detik jika belum fullscreen
+        // Coba paksa fullscreen setiap 2 detik
         fullscreenCheckInterval = setInterval(() => {
             if (!studentExamActive || examLocked) {
                 clearInterval(fullscreenCheckInterval);
                 return;
             }
-            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            if (!isFullscreen && !examLocked) {
-                requestFullscreen?.call(elem).catch(e => {});
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (!isFS && !examLocked) {
+                requestFS?.call(elem).catch(e => {});
             }
         }, 2000);
     }
     
     // ======================= MEMUAT UJIAN SISWA =======================
     function loadStudentExam(encryptedToken) {
+        console.log("Loading student exam with token:", encryptedToken);
+        
         const originalUrl = simpleDecrypt(encryptedToken);
+        
         if (!originalUrl) {
-            alert("Link ujian tidak valid. Hubungi guru.");
+            alert("❌ Link ujian tidak valid atau sudah kadaluarsa!\nHubungi guru untuk mendapatkan link baru.");
             window.location.href = window.location.pathname;
             return false;
         }
         
+        console.log("Original Google Form URL:", originalUrl);
+        
+        // Aktifkan mode siswa
         studentExamActive = true;
         examLocked = false;
         
-        // Ubah UI ke mode ujian
+        // Ubah UI
         guruSection.classList.add('hidden');
         studentExamArea.classList.remove('hidden');
-        modeBadge.innerText = "🎓 UJIAN AKTIF | LOCKDOWN";
+        modeBadge.innerText = "🎓 UJIAN AKTIF | LOCKDOWN MODE";
         appContainer.classList.add('exam-mode');
         
-        // Load iframe
+        // Load Google Form ke iframe
         examIframe.src = originalUrl;
         
-        // Aktifkan semua proteksi
-        startViolationDetection();
-        forceFullscreenKiosk();
+        // Mulai semua proteksi
+        startStudentProtection();
         
-        // Tambahan: overlay transparan tidak menghalangi klik tapi mencegah copy (tidak sempurna tapi membantu)
-        console.log("✅ Mode ujian super aman aktif");
         return true;
     }
     
     // ======================= DETEKSI PARAMETER URL =======================
-    function getExamToken() {
+    function getExamTokenFromURL() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('exam');
+        const token = params.get('exam');
+        console.log("Token from URL:", token);
+        return token;
     }
     
     // ======================= INISIALISASI =======================
     function init() {
-        const token = getExamToken();
+        const token = getExamTokenFromURL();
+        
         if (token) {
+            // Mode SISWA - ada parameter exam
             currentMode = "siswa";
             loadStudentExam(token);
         } else {
+            // Mode GURU - tidak ada parameter
             currentMode = "guru";
             guruSection.classList.remove('hidden');
             studentExamArea.classList.add('hidden');
-            modeBadge.innerText = "🔐 MODE GURU";
+            modeBadge.innerText = "🔐 MODE GURU (Generate Link)";
         }
     }
     
+    // Jalankan init saat halaman siap
     init();
+    
+    // Log untuk debugging
+    console.log("Secure Exam Sukabumi 2 - Siap digunakan");
+    console.log("Mode:", currentMode);
 </script>
 </body>
 </html>
