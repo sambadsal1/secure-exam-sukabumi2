@@ -84,6 +84,9 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+        input[type="password"] {
+            letter-spacing: 0.2rem;
+        }
         button {
             background: linear-gradient(95deg, #1f6e5c, #0f3b34);
             border: none;
@@ -145,27 +148,42 @@
             border: 1px solid #f97316;
         }
         
+        /* PERBAIKAN: Iframe full screen tanpa background hitam */
         .exam-wrapper {
             position: relative;
-            flex: 1;
-            margin: 0;
-            background: white;
-            border-radius: 0.8rem;
-            overflow: hidden;
+            width: 100%;
             height: 100%;
+            background: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
         .exam-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             border: none;
             background: white;
         }
         
+        /* Mode ujian - panel mengambil seluruh ruang */
         .exam-mode .panel {
             padding: 0;
             display: flex;
             flex-direction: column;
             height: 100%;
+            overflow: hidden;
+        }
+        
+        .exam-mode #studentExamArea {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
         }
         
         @media (max-width: 700px) {
@@ -187,6 +205,12 @@
             margin-top: 0.5rem;
             font-size: 0.7rem;
         }
+        
+        .password-hint {
+            font-size: 0.65rem;
+            color: #6c8b7e;
+            margin-top: 0.3rem;
+        }
     </style>
 </head>
 <body>
@@ -204,6 +228,9 @@
             <div class="card">
                 <h3 style="color:#e2f0ec; font-size:1rem;">📥 Masukkan Link Google Form</h3>
                 <input type="url" id="formLinkInput" placeholder="https://docs.google.com/forms/d/e/...">
+                <div style="margin-top: 0.5rem;">
+                    <input type="password" id="guruPasswordInput" placeholder="Password Guru" style="margin-top: 0;">
+                </div>
                 <button id="generateBtn">🔒 GENERATE LINK UJIAN AMAN</button>
                 <div id="generatedResult" class="hidden">
                     <div style="margin-top: 1rem;">
@@ -224,13 +251,11 @@
                 </div>
             </div>
             <div class="warning">
-                🔑 Password guru: <strong>r4h4514</strong><br>
-                • Password digunakan untuk GENERATE link ujian<br>
-                • Password digunakan untuk MEMBUKA KUNCI jika siswa melanggar
+                🔑 <strong>Catatan:</strong> Password guru digunakan untuk generate link dan membuka kunci jika siswa melanggar.
             </div>
         </div>
 
-        <!-- AREA UJIAN SISWA -->
+        <!-- AREA UJIAN SISWA (FULLSCREEN) -->
         <div id="studentExamArea" class="hidden">
             <div class="exam-wrapper" id="examWrapper">
                 <iframe id="examIframe" class="exam-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups"></iframe>
@@ -257,6 +282,7 @@
     const modeBadge = document.getElementById('modeBadge');
     const generateBtn = document.getElementById('generateBtn');
     const formLinkInput = document.getElementById('formLinkInput');
+    const guruPasswordInput = document.getElementById('guruPasswordInput');
     const generatedResult = document.getElementById('generatedResult');
     const secureLinkDisplay = document.getElementById('secureLinkDisplay');
     const copyLinkBtn = document.getElementById('copyLinkBtn');
@@ -266,7 +292,6 @@
     // ======================= FUNGSI ENKRIPSI/DESKRIPSI =======================
     function simpleEncrypt(url) {
         try {
-            // Enkripsi sederhana: base64 -> reverse -> tambah salt
             let text = url + "||" + Date.now();
             let encoded = btoa(unescape(encodeURIComponent(text)));
             let reversed = encoded.split('').reverse().join('');
@@ -301,29 +326,28 @@
             return null;
         }
         
-        // Enkripsi URL Google Form
         const encrypted = simpleEncrypt(formUrl);
         if (!encrypted) {
             alert("❌ Gagal mengenkripsi link!");
             return null;
         }
         
-        // Buat link ke aplikasi ini dengan parameter terenkripsi
         const baseUrl = window.location.href.split('?')[0].split('#')[0];
         const secureLink = `${baseUrl}?exam=${encodeURIComponent(encrypted)}`;
         
         console.log("Generated secure link:", secureLink);
-        console.log("Original form:", formUrl);
-        console.log("Encrypted token:", encrypted);
         
         return secureLink;
     }
     
     // ======================= MODE GURU =======================
     generateBtn.onclick = () => {
-        let pwd = prompt("🔐 MASUKKAN PASSWORD GURU untuk generate link aman:");
+        const pwd = guruPasswordInput.value;
+        
         if (pwd !== MASTER_PASSWORD) {
             alert("❌ Password salah! Hanya guru yang bisa membuat link ujian.");
+            guruPasswordInput.value = "";
+            guruPasswordInput.focus();
             return;
         }
         
@@ -335,14 +359,16 @@
         
         const secureLink = generateSecureLink(url);
         if (secureLink) {
-            // Tampilkan hasil generate
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
             
             // Scroll ke hasil generate
             generatedResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             
-            // Tampilkan notifikasi sukses
+            // Bersihkan password setelah sukses
+            guruPasswordInput.value = "";
+            
+            // Tampilkan notifikasi
             const oldNotif = document.querySelector('.success-notif');
             if(oldNotif) oldNotif.remove();
             
@@ -358,7 +384,14 @@
         }
     };
     
-    // Tombol copy - pastikan yang dicopy adalah link hasil generate (BUKAN link asli)
+    // Enter key pada password field
+    guruPasswordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            generateBtn.click();
+        }
+    });
+    
     copyLinkBtn.onclick = () => {
         const link = secureLinkDisplay.innerText;
         if (link && link.includes('?exam=')) {
@@ -369,7 +402,6 @@
         }
     };
     
-    // Tombol test - buka tab baru untuk menguji link hasil generate
     if (testLinkBtn) {
         testLinkBtn.onclick = () => {
             const link = secureLinkDisplay.innerText;
@@ -425,13 +457,13 @@
                 window.location.reload();
             } else {
                 alert("❌ Password salah! Hanya guru yang bisa membuka kunci.");
+                document.getElementById('unlockPassword').value = "";
             }
         };
     }
     
     // ======================= PROTEKSI SISWA =======================
     function startStudentProtection() {
-        // Blokir event copy/paste/contextmenu
         const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
@@ -442,7 +474,6 @@
             });
         });
         
-        // Blokir shortcut
         window.addEventListener('keydown', (e) => {
             if (!studentExamActive || examLocked) return;
             
@@ -455,14 +486,12 @@
             }
         });
         
-        // Deteksi keluar tab
         setInterval(() => {
             if (!studentExamActive || examLocked) return;
             if (document.hidden) triggerViolation("Pindah tab / buka aplikasi lain");
             if (!document.hasFocus()) triggerViolation("Kehilangan fokus");
         }, 300);
         
-        // Deteksi screenshot
         window.addEventListener('blur', () => { if (studentExamActive && !examLocked) lastBlurTime = Date.now(); });
         window.addEventListener('focus', () => {
             if (studentExamActive && !examLocked && lastBlurTime > 0) {
@@ -532,7 +561,6 @@
         modeBadge.innerText = "🎓 UJIAN AKTIF | LOCKDOWN MODE";
         appContainer.classList.add('exam-mode');
         
-        // Load Google Form ke iframe
         examIframe.src = originalUrl;
         
         startStudentProtection();
