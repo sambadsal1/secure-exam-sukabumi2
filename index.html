@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>🔒 Secure Exam Sukabumi 2 | Anti-Cheat Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+    <title>🔒 Secure Exam Sukabumi 2 | Anti-Cheat Pro</title>
     <style>
         * {
             margin: 0;
@@ -13,163 +13,178 @@
             -webkit-tap-highlight-color: transparent;
         }
         body {
-            background: linear-gradient(135deg, #0b2b26, #0a1c1a);
-            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
+            background: #0b2b26;
+            font-family: 'Segoe UI', system-ui;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        /* Fullscreen kiosk mode */
+        body.fullscreen-kiosk {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
         }
         .app-container {
-            max-width: 1200px;
             width: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            border-radius: 2rem;
-            border: 1px solid #2e7d64;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.5);
-            overflow: hidden;
+            height: 100%;
+            background: linear-gradient(135deg, #0b2b26, #0a1c1a);
+            display: flex;
+            flex-direction: column;
         }
         .header {
             background: #0f2c27;
-            padding: 1rem 2rem;
+            padding: 0.8rem 1rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 2px solid #2e7d64;
-            flex-wrap: wrap;
-            gap: 1rem;
+            flex-shrink: 0;
         }
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.8rem;
         }
         .logo-img {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
             background: white;
             border-radius: 50%;
-            padding: 5px;
-        }
-        .logo-placeholder {
-            width: 50px;
-            height: 50px;
-            background: #2e7d64;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+            padding: 4px;
         }
         .title {
             color: #f0fdf4;
-            font-size: 1.4rem;
+            font-size: 1rem;
             font-weight: 700;
+            line-height: 1.2;
         }
         .badge {
             background: #1e3a37;
-            padding: 0.3rem 1rem;
+            padding: 0.2rem 0.8rem;
             border-radius: 40px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: #9cd4c2;
         }
         .panel {
-            padding: 2rem;
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
         }
         .card {
-            background: rgba(15, 35, 32, 0.8);
-            border-radius: 1.5rem;
-            padding: 1.8rem;
+            background: rgba(15, 35, 32, 0.9);
+            border-radius: 1.2rem;
+            padding: 1.2rem;
             border: 1px solid #2e7d64;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         input, textarea {
             width: 100%;
-            padding: 0.9rem;
+            padding: 0.8rem;
             background: #0a1f1c;
             border: 1.5px solid #2e7d64;
             border-radius: 1rem;
             color: #e2f0ec;
-            font-size: 1rem;
+            font-size: 0.9rem;
             margin-top: 0.5rem;
         }
         button {
             background: linear-gradient(95deg, #1f6e5c, #0f3b34);
             border: none;
-            padding: 0.8rem 1.5rem;
+            padding: 0.7rem 1.2rem;
             border-radius: 2rem;
             font-weight: bold;
             color: white;
             cursor: pointer;
-            transition: 0.2s;
             width: 100%;
             margin-top: 1rem;
         }
-        button:active { transform: scale(0.97); }
         .warning {
             background: #2d2a1e;
-            border-left: 5px solid #f4b942;
-            padding: 0.8rem;
-            border-radius: 1rem;
-            font-size: 0.8rem;
+            border-left: 4px solid #f4b942;
+            padding: 0.6rem;
+            border-radius: 0.8rem;
+            font-size: 0.7rem;
             color: #ffe5b4;
         }
         .generated-link {
             background: #0a1f1c;
-            padding: 0.8rem;
-            border-radius: 1rem;
+            padding: 0.6rem;
+            border-radius: 0.8rem;
             word-break: break-all;
             font-family: monospace;
-            margin-top: 1rem;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #2e7d64;
-            color: #9cd4c2;
+            font-size: 0.7rem;
+            margin-top: 0.8rem;
         }
         .hidden { display: none; }
+        
+        /* Lock overlay */
         .lock-overlay {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.98);
             backdrop-filter: blur(12px);
-            z-index: 9999;
+            z-index: 10000;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            padding: 2rem;
+            padding: 1rem;
         }
         .lock-card {
             background: #1e1e2a;
-            border-radius: 2rem;
-            padding: 2rem;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
             text-align: center;
-            max-width: 400px;
+            max-width: 350px;
             border: 1px solid #f97316;
         }
-        iframe {
+        
+        /* Wrapper iframe dengan overlay anti-copy */
+        .exam-wrapper {
+            position: relative;
+            flex: 1;
+            margin: 0;
+            background: white;
+            border-radius: 0.8rem;
+            overflow: hidden;
+        }
+        .exam-iframe {
             width: 100%;
-            height: 70vh;
+            height: 100%;
             border: none;
-            border-radius: 1rem;
             background: white;
         }
+        .anti-copy-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 10;
+            pointer-events: none; /* Biarkan klik tetap ke iframe */
+        }
+        
+        /* Mode ujian - sembunyikan scroll */
+        .exam-mode .panel {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .exam-mode .header {
+            padding: 0.5rem 0.8rem;
+        }
+        
         @media (max-width: 700px) {
-            .panel { padding: 1rem; }
-            iframe { height: 55vh; }
-        }
-        /* Fullscreen style */
-        :-webkit-full-screen {
-            background-color: #0b2b26;
-        }
-        :fullscreen {
-            background-color: #0b2b26;
+            .title { font-size: 0.85rem; }
+            .logo-img { width: 35px; height: 35px; }
         }
     </style>
 </head>
@@ -178,38 +193,33 @@
     <div class="header">
         <div class="logo-area">
             <img id="schoolLogo" class="logo-img" src="logo-sekolah.png" alt="Logo" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2245%22%20fill%3D%22%232e7d64%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2268%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-size%3D%2240%22%3E🏫%3C%2Ftext%3E%3C%2Fsvg%3E'">
-            <div class="title">SECURE EXAM<br><span style="font-size:0.7rem;">SUKABUMI 2</span></div>
+            <div class="title">SECURE EXAM<br><span style="font-size:0.6rem;">SUKABUMI 2</span></div>
         </div>
         <div class="badge" id="modeBadge">🔐 MODE GURU</div>
     </div>
     <div class="panel" id="mainPanel">
-        <!-- MODE GURU (generate link) -->
+        <!-- MODE GURU -->
         <div id="guruSection">
             <div class="card">
-                <h3 style="color:#e2f0ec;">📥 Masukkan Link Google Form</h3>
+                <h3 style="color:#e2f0ec; font-size:1rem;">📥 Masukkan Link Google Form</h3>
                 <input type="url" id="formLinkInput" placeholder="https://docs.google.com/forms/d/e/...">
-                <button id="generateBtn">🔒 GENERATE LINK UJIAN AMAN</button>
+                <button id="generateBtn">🔒 GENERATE LINK UJIAN</button>
                 <div id="generatedResult" class="hidden">
                     <div class="generated-link" id="secureLinkDisplay"></div>
-                    <button id="copyLinkBtn" class="btn-outline">📋 Salin Link</button>
-                    <div class="warning">✨ Gunakan link ini untuk membuat QR Code. Tempel di depan kelas. Siswa scan → langsung ujian aman (Fullscreen Kiosk).</div>
+                    <button id="copyLinkBtn" class="btn-outline" style="background:#2e7d64;">📋 Salin Link</button>
+                    <div class="warning">✨ Buat QR Code dari link ini. Siswa scan → ujian aman.</div>
                 </div>
             </div>
             <div class="warning">
-                ⚠️ Password guru: <strong>r4h4514</strong> (hanya guru). Jika siswa melanggar, aplikasi akan terkunci dan hanya guru yang bisa membuka dengan password ini.
+                🔑 Password guru: <strong>r4h4514</strong> (untuk generate & buka kunci pelanggaran)
             </div>
         </div>
 
-        <!-- AREA UJIAN SISWA (muncul jika ada parameter terenkripsi) -->
+        <!-- AREA UJIAN SISWA -->
         <div id="studentExamArea" class="hidden">
-            <div class="card" style="margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>🛡️ MODUS UJIAN SUPER AMAN + FULLSCREEN</span>
-                    <span id="examStatus">🔒 Aktif</span>
-                </div>
-            </div>
-            <div id="examFrameWrapper" class="hidden">
-                <iframe id="examIframe" sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups"></iframe>
+            <div class="exam-wrapper" id="examWrapper">
+                <iframe id="examIframe" class="exam-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups allow-top-navigation-by-user-activation"></iframe>
+                <div class="anti-copy-overlay"></div>
             </div>
         </div>
     </div>
@@ -218,19 +228,18 @@
 <script>
     // ======================= KONFIGURASI =======================
     const MASTER_PASSWORD = "r4h4514";
-    const ENCRYPTION_KEY = "Sukabumi2Secure2025"; // untuk enkripsi sederhana
+    const ENCRYPTION_KEY = "Sukabumi2Secure2025";
     
-    // State aplikasi
-    let currentMode = "guru"; // 'guru' atau 'siswa'
-    let examLocked = false;     // apakah ujian sedang terkunci (pelanggaran)
-    let currentFormUrl = "";
+    let currentMode = "guru";
+    let examLocked = false;
     let studentExamActive = false;
-    let fullscreenActive = false;
+    let violationInterval;
+    let lastBlurTime = 0;
+    let fullscreenCheckInterval;
     
-    // DOM elements
+    // DOM
     const guruSection = document.getElementById('guruSection');
     const studentExamArea = document.getElementById('studentExamArea');
-    const examFrameWrapper = document.getElementById('examFrameWrapper');
     const examIframe = document.getElementById('examIframe');
     const modeBadge = document.getElementById('modeBadge');
     const generateBtn = document.getElementById('generateBtn');
@@ -238,8 +247,9 @@
     const generatedResult = document.getElementById('generatedResult');
     const secureLinkDisplay = document.getElementById('secureLinkDisplay');
     const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const appContainer = document.getElementById('app');
     
-    // ======================= FUNGSI ENKRIPSI / DEKRIPSI =======================
+    // ======================= ENKRIPSI =======================
     function simpleEncrypt(url) {
         let text = url + "||" + Date.now();
         let encoded = btoa(unescape(encodeURIComponent(text)));
@@ -255,15 +265,14 @@
             let reversed = parts[0].split('').reverse().join('');
             let original = decodeURIComponent(escape(atob(reversed)));
             let urlPart = original.split("||")[0];
-            if (urlPart.startsWith("https://docs.google.com/forms")) return urlPart;
+            if (urlPart && urlPart.includes("docs.google.com/forms")) return urlPart;
             return null;
         } catch(e) { return null; }
     }
     
-    // ======================= MEMBUAT LINK AMAN =======================
     function generateSecureLink(formUrl) {
         if (!formUrl.includes("docs.google.com/forms")) {
-            alert("Harap masukkan link Google Form yang valid!");
+            alert("Link harus Google Form yang valid!");
             return null;
         }
         const encrypted = simpleEncrypt(formUrl);
@@ -273,76 +282,36 @@
     
     // ======================= MODE GURU =======================
     generateBtn.onclick = () => {
-        let pwd = prompt("🔐 MASUKKAN PASSWORD GURU untuk generate link aman:");
+        let pwd = prompt("🔐 PASSWORD GURU untuk generate link:");
         if (pwd !== MASTER_PASSWORD) {
-            alert("Password salah! Hanya guru yang bisa membuat link ujian.");
+            alert("Password salah!");
             return;
         }
         const url = formLinkInput.value.trim();
-        if (!url) return alert("Isi link Google Form terlebih dahulu.");
+        if (!url) return alert("Isi link Google Form");
         const secureLink = generateSecureLink(url);
         if (secureLink) {
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
-        } else {
-            alert("Gagal generate, periksa link.");
         }
     };
     
     copyLinkBtn.onclick = () => {
-        const link = secureLinkDisplay.innerText;
-        navigator.clipboard.writeText(link);
-        alert("Link disalin! Gunakan untuk membuat QR Code.");
+        navigator.clipboard.writeText(secureLinkDisplay.innerText);
+        alert("Link disalin!");
     };
     
-    // ======================= DETEKSI PARAMETER =======================
-    function getExamTokenFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('exam');
-    }
-    
-    // ======================= FITUR FULLSCREEN KIOSK =======================
-    async function enterFullscreen() {
-        const elem = document.documentElement;
-        try {
-            if (elem.requestFullscreen) {
-                await elem.requestFullscreen();
-                fullscreenActive = true;
-            } else if (elem.webkitRequestFullscreen) {
-                await elem.webkitRequestFullscreen();
-                fullscreenActive = true;
-            } else if (elem.msRequestFullscreen) {
-                await elem.msRequestFullscreen();
-                fullscreenActive = true;
-            }
-        } catch (err) {
-            console.warn("Fullscreen tidak diizinkan:", err);
-            // Tidak perlu trigger violation, hanya catat
-        }
-    }
-    
-    function handleFullscreenChange() {
-        if (!studentExamActive || examLocked) return;
-        const isFullscreen = !!(
-            document.fullscreenElement ||
-            document.webkitFullscreenElement ||
-            document.msFullscreenElement
-        );
-        if (!isFullscreen && fullscreenActive) {
-            // Keluar dari fullscreen = pelanggaran
-            triggerViolation("Keluar dari mode fullscreen (kiosk)");
-        }
-        fullscreenActive = isFullscreen;
-    }
-    
-    // ======================= FITUR KEAMANAN SISWA (LOCKDOWN) =======================
+    // ======================= KUNCI PELANGGARAN =======================
     function triggerViolation(reason) {
         if (!studentExamActive || examLocked) return;
         examLocked = true;
         studentExamActive = false;
-        // Keluar dari fullscreen jika sedang aktif
-        if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
-        examFrameWrapper.classList.add('hidden');
+        
+        // Hentikan semua interval
+        if (violationInterval) clearInterval(violationInterval);
+        if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
+        
+        // Tampilkan overlay kunci
         showLockScreen(reason);
     }
     
@@ -356,8 +325,8 @@
             <div class="lock-card">
                 <span style="font-size:3rem;">🔒⚠️</span>
                 <h2 style="color:#ffb347">UJIAN TERKUNCI!</h2>
-                <p style="color:#ccc;">Pelanggaran: ${reason}</p>
-                <p>Siswa tidak bisa melanjutkan. Hubungi guru untuk membuka.</p>
+                <p style="color:#ccc; font-size:0.8rem;">Pelanggaran: ${reason}</p>
+                <p style="color:#aaa; font-size:0.7rem; margin-top:0.5rem;">Hubungi guru untuk membuka kunci</p>
                 <input type="password" id="unlockPassword" placeholder="Password Guru" style="margin-top:1rem;">
                 <button id="submitUnlockBtn">BUKA KUNCI</button>
             </div>
@@ -367,126 +336,175 @@
             const pwd = document.getElementById('unlockPassword').value;
             if (pwd === MASTER_PASSWORD) {
                 overlay.remove();
-                // Reload halaman untuk memulai ulang ujian
                 window.location.reload();
             } else {
-                alert("Password salah! Hanya guru yang dapat membuka.");
+                alert("Password salah! Hanya guru yang bisa membuka.");
             }
         };
     }
     
-    function startStudentSecurity() {
-        // Blokir event copy, cut, paste, contextmenu
-        const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
+    // ======================= DETEKSI PELANGGARAN SISWA =======================
+    function startViolationDetection() {
+        // 1. Blokir semua event copy/paste/contextmenu di seluruh halaman
+        const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart', 'keydown'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
                 if (studentExamActive && !examLocked) {
-                    e.preventDefault();
-                    triggerViolation(`Percobaan ${ev} (copy/klik kanan)`);
+                    if (ev === 'keydown') {
+                        // Cegah shortcut berbahaya
+                        if ((e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) ||
+                            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+                            e.key === 'F12' || e.key === 'F5' || (e.ctrlKey && e.key === 'r') ||
+                            e.key === 'Escape' || e.key === 'Home' || e.key === 'Meta') {
+                            e.preventDefault();
+                            triggerViolation(`Shortcut ilegal (${e.key})`);
+                        }
+                    } else {
+                        e.preventDefault();
+                        triggerViolation(`Percobaan ${ev}`);
+                    }
                 }
             });
         });
         
-        // Blokir shortcut berbahaya
-        window.addEventListener('keydown', (e) => {
+        // 2. Deteksi keluar tab / pindah aplikasi (termasuk screenshot dengan tombol fisik)
+        let lastVisibility = !document.hidden;
+        setInterval(() => {
             if (!studentExamActive || examLocked) return;
-            // F11 dan ESC untuk fullscreen dianggap pelanggaran jika keluar fullscreen, tapi ESC juga bisa dianggap
-            if (e.key === 'Escape' || e.key === 'Esc') {
-                // penanganan dilakukan oleh fullscreenchange event, namun kita cegah juga
-                e.preventDefault();
-                triggerViolation("Tekan ESC (mencoba keluar fullscreen)");
-                return;
+            const now = Date.now();
+            if (document.hidden) {
+                // Tab tidak terlihat = pindah aplikasi atau buka kontrol
+                triggerViolation("Pindah tab / buka aplikasi lain");
             }
-            if ((e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S' || e.key === 'u')) ||
-                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
-                e.key === 'F12' || (e.ctrlKey && e.key === 'r') || e.key === 'F5' || e.key === 'F11') {
-                e.preventDefault();
-                triggerViolation("Shortcut ilegal (Ctrl+C / DevTools / Refresh / Fullscreen)");
+            // Deteksi blur window (kehilangan fokus)
+            if (!document.hasFocus() && !examLocked) {
+                triggerViolation("Kehilangan fokus (keluar dari ujian)");
             }
-        });
+        }, 500);
         
-        // Deteksi keluar tab / blur
-        document.addEventListener('visibilitychange', () => {
-            if (studentExamActive && !examLocked && document.hidden) {
-                triggerViolation("Pindah tab / keluar dari aplikasi");
-            }
-        });
+        // 3. Deteksi screenshot hardware di Android (tombol power+volume down)
+        // Metode: pantau perubahan visibility + blur yang sangat cepat (karakteristik screenshot)
+        let screenshotDetected = false;
         window.addEventListener('blur', () => {
-            if (studentExamActive && !examLocked) {
-                triggerViolation("Kehilangan fokus (buka aplikasi lain)");
+            if (studentExamActive && !examLocked && !screenshotDetected) {
+                lastBlurTime = Date.now();
+            }
+        });
+        window.addEventListener('focus', () => {
+            if (studentExamActive && !examLocked && !screenshotDetected) {
+                const blurDuration = Date.now() - lastBlurTime;
+                // Blur cepat < 1 detik = indikasi screenshot atau buka quick panel
+                if (blurDuration > 100 && blurDuration < 800) {
+                    triggerViolation("Terdeteksi screenshot / buka panel kontrol");
+                }
             }
         });
         
-        // Deteksi devtools via debugger
-        setInterval(() => {
-            if (!studentExamActive || examLocked) return;
-            const start = performance.now();
-            debugger;
-            const end = performance.now();
-            if (end - start > 100) triggerViolation("DevTools terdeteksi");
-        }, 2000);
-        
-        // Deteksi screenshot (simulasi) - mengunci jika ada resize mencurigakan
-        let lastWidth = window.innerWidth, lastHeight = window.innerHeight;
-        setInterval(() => {
-            if (!studentExamActive || examLocked) return;
-            if (Math.abs(window.innerWidth - lastWidth) > 80 || Math.abs(window.innerHeight - lastHeight) > 80) {
-                triggerViolation("Perubahan layar drastis (potensi screenshot)");
-            }
-            lastWidth = window.innerWidth;
-            lastHeight = window.innerHeight;
-        }, 1500);
-        
-        // Cegah print
+        // 4. Cegah print
         window.addEventListener('beforeprint', () => triggerViolation("Percobaan print"));
         
-        // Fullscreen change listener
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+        // 5. Cegah drag keluar
+        document.body.addEventListener('dragstart', (e) => {
+            if (studentExamActive && !examLocked) {
+                e.preventDefault();
+                triggerViolation("Drag & drop terlarang");
+            }
+        });
         
-        // Minta fullscreen setelah iframe termuat (kiosk)
-        enterFullscreen().catch(err => console.warn("Gagal fullscreen:", err));
-        // Ulangi setiap 3 detik jika belum fullscreen (untuk memaksa)
-        const fullscreenInterval = setInterval(() => {
+        // 6. Redirect jika mencoba buka link baru
+        window.addEventListener('beforeunload', (e) => {
+            if (studentExamActive && !examLocked) {
+                e.preventDefault();
+                e.returnValue = '';
+                triggerViolation("Mencoba keluar halaman");
+            }
+        });
+        
+        // 7. Nonaktifkan tombol back
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', () => {
+            if (studentExamActive && !examLocked) {
+                history.pushState(null, null, location.href);
+                triggerViolation("Tombol back ditekan");
+            }
+        });
+    }
+    
+    // ======================= KIOSK FULLSCREEN (Paksa tanpa keluar) =======================
+    function forceFullscreenKiosk() {
+        const elem = document.documentElement;
+        const requestFullscreen = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
+        if (requestFullscreen) {
+            requestFullscreen.call(elem).catch(e => console.log("Fullscreen perlu interaksi"));
+        }
+        // Sembunyikan scroll dan buat body fixed
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        
+        // Pantau jika keluar fullscreen
+        const fullscreenChangeHandler = () => {
+            if (studentExamActive && !examLocked) {
+                const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                if (!isFullscreen) {
+                    triggerViolation("Keluar dari mode fullscreen");
+                }
+            }
+        };
+        document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+        document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+        
+        // Coba paksa setiap 2 detik jika belum fullscreen
+        fullscreenCheckInterval = setInterval(() => {
             if (!studentExamActive || examLocked) {
-                clearInterval(fullscreenInterval);
+                clearInterval(fullscreenCheckInterval);
                 return;
             }
             const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
             if (!isFullscreen && !examLocked) {
-                enterFullscreen().catch(e=>{});
-            } else if (isFullscreen) {
-                clearInterval(fullscreenInterval);
+                requestFullscreen?.call(elem).catch(e => {});
             }
-        }, 3000);
+        }, 2000);
     }
     
     // ======================= MEMUAT UJIAN SISWA =======================
     function loadStudentExam(encryptedToken) {
         const originalUrl = simpleDecrypt(encryptedToken);
         if (!originalUrl) {
-            alert("Link ujian tidak valid atau sudah kadaluarsa. Hubungi guru.");
-            window.location.href = window.location.pathname; // hapus parameter
+            alert("Link ujian tidak valid. Hubungi guru.");
+            window.location.href = window.location.pathname;
             return false;
         }
-        currentFormUrl = originalUrl;
+        
         studentExamActive = true;
         examLocked = false;
-        // Tampilkan area siswa
+        
+        // Ubah UI ke mode ujian
         guruSection.classList.add('hidden');
         studentExamArea.classList.remove('hidden');
-        examFrameWrapper.classList.remove('hidden');
-        modeBadge.innerText = "🎓 MODE SISWA (UJIAN AMAN + FULLSCREEN)";
-        examIframe.src = currentFormUrl;
-        // Mulai semua proteksi (termasuk fullscreen kiosk)
-        startStudentSecurity();
+        modeBadge.innerText = "🎓 UJIAN AKTIF | LOCKDOWN";
+        appContainer.classList.add('exam-mode');
+        
+        // Load iframe
+        examIframe.src = originalUrl;
+        
+        // Aktifkan semua proteksi
+        startViolationDetection();
+        forceFullscreenKiosk();
+        
+        // Tambahan: overlay transparan tidak menghalangi klik tapi mencegah copy (tidak sempurna tapi membantu)
+        console.log("✅ Mode ujian super aman aktif");
         return true;
+    }
+    
+    // ======================= DETEKSI PARAMETER URL =======================
+    function getExamToken() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('exam');
     }
     
     // ======================= INISIALISASI =======================
     function init() {
-        const token = getExamTokenFromURL();
+        const token = getExamToken();
         if (token) {
             currentMode = "siswa";
             loadStudentExam(token);
@@ -494,7 +512,7 @@
             currentMode = "guru";
             guruSection.classList.remove('hidden');
             studentExamArea.classList.add('hidden');
-            modeBadge.innerText = "🔐 MODE GURU (Generate Link)";
+            modeBadge.innerText = "🔐 MODE GURU";
         }
     }
     
