@@ -126,6 +126,7 @@
         }
         .hidden { display: none; }
         
+        /* Lock overlay */
         .lock-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -148,7 +149,7 @@
             border: 1px solid #f97316;
         }
         
-        /* PERBAIKAN: Iframe full screen tanpa background hitam */
+        /* Fullscreen iframe */
         .exam-wrapper {
             position: relative;
             width: 100%;
@@ -168,7 +169,6 @@
             background: white;
         }
         
-        /* Mode ujian - panel mengambil seluruh ruang */
         .exam-mode .panel {
             padding: 0;
             display: flex;
@@ -176,7 +176,6 @@
             height: 100%;
             overflow: hidden;
         }
-        
         .exam-mode #studentExamArea {
             display: flex;
             flex-direction: column;
@@ -206,10 +205,17 @@
             font-size: 0.7rem;
         }
         
-        .password-hint {
-            font-size: 0.65rem;
-            color: #6c8b7e;
-            margin-top: 0.3rem;
+        /* CSS untuk membuat screenshot menjadi hitam (jika pengguna mengambil screenshot saat konten terlihat, tapi tidak bisa 100%) */
+        .black-screenshot-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 9999;
+            display: none;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -251,7 +257,7 @@
                 </div>
             </div>
             <div class="warning">
-                🔑 <strong>Catatan:</strong> Password guru digunakan untuk generate link dan membuka kunci jika siswa melanggar.
+                🔑 <strong>Catatan:</strong> Password guru diperlukan untuk generate link dan membuka kunci jika siswa melanggar.
             </div>
         </div>
 
@@ -263,6 +269,7 @@
         </div>
     </div>
 </div>
+<div class="black-screenshot-overlay" id="blackScreenshotOverlay"></div>
 
 <script>
     // ======================= KONFIGURASI =======================
@@ -274,6 +281,8 @@
     let studentExamActive = false;
     let lastBlurTime = 0;
     let fullscreenCheckInterval;
+    let originalWindowWidth = window.innerWidth;
+    let originalWindowHeight = window.innerHeight;
     
     // DOM
     const guruSection = document.getElementById('guruSection');
@@ -288,6 +297,7 @@
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     const testLinkBtn = document.getElementById('testLinkBtn');
     const appContainer = document.getElementById('app');
+    const blackOverlay = document.getElementById('blackScreenshotOverlay');
     
     // ======================= FUNGSI ENKRIPSI/DESKRIPSI =======================
     function simpleEncrypt(url) {
@@ -336,7 +346,6 @@
         const secureLink = `${baseUrl}?exam=${encodeURIComponent(encrypted)}`;
         
         console.log("Generated secure link:", secureLink);
-        
         return secureLink;
     }
     
@@ -345,7 +354,7 @@
         const pwd = guruPasswordInput.value;
         
         if (pwd !== MASTER_PASSWORD) {
-            alert("❌ Password salah! Hanya guru yang bisa membuat link ujian.");
+            alert("❌ Password salah! Akses ditolak.");
             guruPasswordInput.value = "";
             guruPasswordInput.focus();
             return;
@@ -361,17 +370,11 @@
         if (secureLink) {
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
-            
-            // Scroll ke hasil generate
             generatedResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            
-            // Bersihkan password setelah sukses
             guruPasswordInput.value = "";
             
-            // Tampilkan notifikasi
             const oldNotif = document.querySelector('.success-notif');
             if(oldNotif) oldNotif.remove();
-            
             const notif = document.createElement('div');
             notif.className = 'warning success-warning success-notif';
             notif.style.marginTop = '0.5rem';
@@ -384,7 +387,6 @@
         }
     };
     
-    // Enter key pada password field
     guruPasswordInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -392,11 +394,15 @@
         }
     });
     
+    // PERBAIKAN 1: Tombol salin URL berfungsi
     copyLinkBtn.onclick = () => {
         const link = secureLinkDisplay.innerText;
         if (link && link.includes('?exam=')) {
-            navigator.clipboard.writeText(link);
-            alert("✅ Link aman disalin! Link ini BUKAN link Google Form asli.\n\nGunakan untuk membuat QR Code.");
+            navigator.clipboard.writeText(link).then(() => {
+                alert("✅ Link aman disalin! Link ini BUKAN link Google Form asli.\n\nGunakan untuk membuat QR Code.");
+            }).catch(() => {
+                alert("❌ Gagal menyalin, silakan salin manual.");
+            });
         } else {
             alert("❌ Tidak ada link untuk disalin. Generate link terlebih dahulu.");
         }
@@ -422,8 +428,13 @@
         studentExamActive = false;
         
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
-        
         if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+        
+        // Tampilkan overlay hitam untuk membuat screenshot menjadi hitam
+        if (blackOverlay) {
+            blackOverlay.style.display = 'block';
+            setTimeout(() => { if(blackOverlay) blackOverlay.style.display = 'none'; }, 2000);
+        }
         
         showLockScreen(reason);
     }
@@ -462,8 +473,26 @@
         };
     }
     
+    // ======================= DETEKSI SPLIT WINDOW (PERUBAHAN LEBAR DRASIS) =======================
+    function detectSplitWindow() {
+        if (!studentExamActive || examLocked) return;
+        const currentWidth = window.innerWidth;
+        const currentHeight = window.innerHeight;
+        // Jika lebar berubah lebih dari 30% dari ukuran awal, anggap split screen
+        const widthDiff = Math.abs(currentWidth - originalWindowWidth);
+        const heightDiff = Math.abs(currentHeight - originalWindowHeight);
+        if ((widthDiff / originalWindowWidth) > 0.3 || (heightDiff / originalWindowHeight) > 0.3) {
+            triggerViolation("Split screen / perubahan resolusi drastis terdeteksi");
+        }
+    }
+    
     // ======================= PROTEKSI SISWA =======================
     function startStudentProtection() {
+        // Catat ukuran awal
+        originalWindowWidth = window.innerWidth;
+        originalWindowHeight = window.innerHeight;
+        
+        // Blokir event copy/paste/contextmenu
         const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
@@ -474,9 +503,9 @@
             });
         });
         
+        // Blokir shortcut berbahaya
         window.addEventListener('keydown', (e) => {
             if (!studentExamActive || examLocked) return;
-            
             const dangerous = ['F12', 'F5', 'Escape', 'Home', 'End', 'c', 'C', 'p', 'P', 's', 'S', 'u', 'U'];
             if ((e.ctrlKey && dangerous.includes(e.key)) ||
                 (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
@@ -486,16 +515,33 @@
             }
         });
         
+        // Deteksi keluar tab / pindah aplikasi
         setInterval(() => {
             if (!studentExamActive || examLocked) return;
             if (document.hidden) triggerViolation("Pindah tab / buka aplikasi lain");
             if (!document.hasFocus()) triggerViolation("Kehilangan fokus");
         }, 300);
         
+        // Deteksi screenshot (blur + focus cepat)
         window.addEventListener('blur', () => { if (studentExamActive && !examLocked) lastBlurTime = Date.now(); });
         window.addEventListener('focus', () => {
             if (studentExamActive && !examLocked && lastBlurTime > 0) {
-                if (Date.now() - lastBlurTime < 1000) triggerViolation("Terdeteksi screenshot");
+                const duration = Date.now() - lastBlurTime;
+                if (duration > 50 && duration < 1000) {
+                    triggerViolation("Terdeteksi screenshot / buka panel kontrol");
+                    // Bantu buat screenshot hitam dengan overlay cepat
+                    if (blackOverlay) {
+                        blackOverlay.style.display = 'block';
+                        setTimeout(() => { if(blackOverlay) blackOverlay.style.display = 'none'; }, 500);
+                    }
+                }
+            }
+        });
+        
+        // Deteksi resize (split window)
+        window.addEventListener('resize', () => {
+            if (studentExamActive && !examLocked) {
+                detectSplitWindow();
             }
         });
         
@@ -542,16 +588,12 @@
     // ======================= MEMUAT UJIAN SISWA =======================
     function loadStudentExam(encryptedToken) {
         console.log("Loading student exam, token:", encryptedToken);
-        
         const originalUrl = simpleDecrypt(encryptedToken);
-        
         if (!originalUrl) {
             alert("❌ Link ujian tidak valid atau sudah kadaluarsa!\nHubungi guru untuk mendapatkan link baru.");
             window.location.href = window.location.pathname;
             return false;
         }
-        
-        console.log("Decrypted URL:", originalUrl);
         
         studentExamActive = true;
         examLocked = false;
@@ -562,9 +604,7 @@
         appContainer.classList.add('exam-mode');
         
         examIframe.src = originalUrl;
-        
         startStudentProtection();
-        
         return true;
     }
     
@@ -577,7 +617,6 @@
     // ======================= INISIALISASI =======================
     function init() {
         const token = getExamTokenFromURL();
-        
         if (token) {
             currentMode = "siswa";
             loadStudentExam(token);
