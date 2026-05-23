@@ -126,7 +126,7 @@
         }
         .hidden { display: none; }
         
-        /* ========== LAYAR KUNCI YANG MENUTUP TOTAL ========== */
+        /* LAYAR KUNCI YANG MENUTUP TOTAL */
         .lock-overlay {
             position: fixed;
             top: 0;
@@ -144,7 +144,6 @@
             cursor: default;
             pointer-events: auto;
         }
-        /* Mencegah interaksi dengan elemen di belakang layar kunci */
         .lock-overlay ~ * {
             pointer-events: none;
         }
@@ -243,7 +242,7 @@
             font-size: 0.7rem;
         }
         
-        /* BANNED SECTION - menutup total juga */
+        /* BANNED SECTION */
         .banned-overlay {
             position: fixed;
             top: 0;
@@ -272,6 +271,21 @@
         .banned-card h2 {
             color: #ef4444;
             margin: 1rem 0;
+        }
+        
+        /* Wake Lock status indicator (small, non-intrusive) */
+        .wake-lock-status {
+            position: fixed;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: #2ecc71;
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            z-index: 1000;
+            font-family: monospace;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -314,6 +328,7 @@
         </div>
     </div>
 </div>
+<div class="wake-lock-status" id="wakeLockStatus">🟢 Layar Tetap Aktif</div>
 
 <script>
     // ======================= KONFIGURASI =======================
@@ -330,19 +345,87 @@
     let originalWindowWidth = window.innerWidth;
     let originalWindowHeight = window.innerHeight;
     
-    // DOM
-    const guruSection = document.getElementById('guruSection');
-    const studentExamArea = document.getElementById('studentExamArea');
-    const examIframe = document.getElementById('examIframe');
-    const modeBadge = document.getElementById('modeBadge');
-    const generateBtn = document.getElementById('generateBtn');
-    const formLinkInput = document.getElementById('formLinkInput');
-    const guruPasswordInput = document.getElementById('guruPasswordInput');
-    const generatedResult = document.getElementById('generatedResult');
-    const secureLinkDisplay = document.getElementById('secureLinkDisplay');
-    const copyLinkBtn = document.getElementById('copyLinkBtn');
-    const testLinkBtn = document.getElementById('testLinkBtn');
-    const appContainer = document.getElementById('app');
+    // ========== WAKE LOCK (ANTI SLEEP) ==========
+    let wakeLock = null;
+    let wakeLockInterval = null;
+    const wakeLockStatusSpan = document.getElementById('wakeLockStatus');
+    
+    async function requestWakeLock() {
+        if (!studentExamActive || examLocked) return;
+        
+        // Cek apakah Wake Lock API didukung
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                if (wakeLockStatusSpan) {
+                    wakeLockStatusSpan.innerHTML = '🟢 Layar Tetap Aktif';
+                    wakeLockStatusSpan.style.color = '#2ecc71';
+                }
+                console.log("✅ Wake Lock aktif - layar tidak akan sleep");
+                
+                // Listener jika wake lock dilepas (misal karena pindah tab)
+                wakeLock.addEventListener('release', () => {
+                    console.log("⚠️ Wake Lock dilepas, mencoba request ulang...");
+                    if (studentExamActive && !examLocked) {
+                        setTimeout(() => requestWakeLock(), 500);
+                    }
+                });
+            } catch (err) {
+                console.error("❌ Gagal mengaktifkan Wake Lock:", err);
+                if (wakeLockStatusSpan) {
+                    wakeLockStatusSpan.innerHTML = '🔴 Wake Lock Gagal';
+                    wakeLockStatusSpan.style.color = '#e74c3c';
+                }
+                // Fallback: interval dummy untuk menjaga CPU aktif
+                startDummyKeepAlive();
+            }
+        } else {
+            console.warn("⚠️ Wake Lock API tidak didukung browser ini");
+            if (wakeLockStatusSpan) {
+                wakeLockStatusSpan.innerHTML = '⚠️ No Wake Lock Support';
+                wakeLockStatusSpan.style.color = '#f39c12';
+            }
+            startDummyKeepAlive();
+        }
+    }
+    
+    function releaseWakeLock() {
+        if (wakeLock !== null) {
+            wakeLock.release().then(() => {
+                console.log("🔓 Wake Lock dilepas");
+                wakeLock = null;
+            }).catch(err => console.error("Gagal release wake lock:", err));
+        }
+        if (wakeLockInterval) {
+            clearInterval(wakeLockInterval);
+            wakeLockInterval = null;
+        }
+        if (wakeLockStatusSpan && !studentExamActive) {
+            wakeLockStatusSpan.innerHTML = '⚫ Layar Normal';
+            wakeLockStatusSpan.style.color = '#95a5a6';
+        }
+    }
+    
+    // Fallback jika Wake Lock API tidak didukung
+    function startDummyKeepAlive() {
+        if (wakeLockInterval) clearInterval(wakeLockInterval);
+        // Interval kecil untuk menjaga CPU tetap aktif (mencegah sleep dalam beberapa kasus)
+        wakeLockInterval = setInterval(() => {
+            if (studentExamActive && !examLocked) {
+                // Dummy operation
+                const dummy = Date.now();
+            }
+        }, 10000);
+    }
+    
+    // Re-request wake lock saat halaman terlihat kembali
+    function handleVisibilityChangeForWakeLock() {
+        if (studentExamActive && !examLocked && !document.hidden) {
+            if (wakeLock === null || wakeLock.released === true) {
+                requestWakeLock();
+            }
+        }
+    }
     
     // ======================= FUNGSI BAN PERMANEN =======================
     function checkBanStatus() {
@@ -368,18 +451,18 @@
     }
     
     function showBannedScreen(reason) {
-        // Hentikan semua aktivitas ujian
+        // Hentikan wake lock
+        releaseWakeLock();
+        
         if (studentExamActive) {
             studentExamActive = false;
             examLocked = true;
         }
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         
-        // Hapus overlay yang mungkin sudah ada
         const existingOverlay = document.getElementById('bannedOverlay');
         if (existingOverlay) existingOverlay.remove();
         
-        // Buat overlay yang menutup TOTAL layar
         const overlay = document.createElement('div');
         overlay.id = 'bannedOverlay';
         overlay.className = 'banned-overlay';
@@ -401,7 +484,6 @@
         `;
         document.body.appendChild(overlay);
         
-        // Event listener untuk unlock
         document.getElementById('bannedUnlockBtn').onclick = () => {
             const pwd = document.getElementById('bannedUnlockPassword').value;
             if (pwd === MASTER_PASSWORD) {
@@ -416,18 +498,18 @@
         });
     }
     
-    // ======================= LAYAR KUNCI SEMENTARA (MENUTUP TOTAL) =======================
+    // ======================= LAYAR KUNCI SEMENTARA =======================
     function showLockScreen(reason) {
-        // Hentikan akses ke iframe
         if (examIframe) {
             examIframe.style.pointerEvents = 'none';
         }
         
-        // Hapus overlay yang mungkin sudah ada
+        // Hentikan wake lock sementara
+        releaseWakeLock();
+        
         const existingOverlay = document.getElementById('tempLockOverlay');
         if (existingOverlay) existingOverlay.remove();
         
-        // Buat overlay yang menutup TOTAL layar, tidak bisa diklik/dilewati
         const overlay = document.createElement('div');
         overlay.id = 'tempLockOverlay';
         overlay.className = 'lock-overlay';
@@ -450,7 +532,6 @@
         `;
         document.body.appendChild(overlay);
         
-        // Setelah 3 detik, ban permanen
         setTimeout(() => {
             setBan(reason);
         }, 3000);
@@ -464,11 +545,12 @@
         examLocked = true;
         studentExamActive = false;
         
-        // Hentikan interval
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
         
-        // Tampilkan layar kunci (menutup total)
+        // Hentikan wake lock
+        releaseWakeLock();
+        
         showLockScreen(reason);
     }
     
@@ -562,7 +644,7 @@
         };
     }
     
-    // ======================= DETEKSI RESIZE (ROTASI LAYAR AMAN) =======================
+    // ======================= DETEKSI RESIZE =======================
     function detectSplitWindow() {
         if (!studentExamActive || examLocked) return;
         const currentWidth = window.innerWidth;
@@ -571,14 +653,12 @@
         const widthChange = Math.abs(currentWidth - originalWindowWidth) / originalWindowWidth;
         const heightChange = Math.abs(currentHeight - originalWindowHeight) / originalWindowHeight;
         
-        // Rotasi layar (keduanya berubah signifikan) -> aman, update ukuran
         if (widthChange > 0.3 && heightChange > 0.3) {
             originalWindowWidth = currentWidth;
             originalWindowHeight = currentHeight;
             return;
         }
         
-        // Split screen: satu dimensi berubah drastis, dimensi lain hampir tidak berubah
         if ((widthChange > 0.3 && heightChange < 0.1) || (heightChange > 0.3 && widthChange < 0.1)) {
             triggerViolation("Split screen / multi window terdeteksi");
         } else if (widthChange > 0.5 || heightChange > 0.5) {
@@ -594,7 +674,12 @@
         originalWindowWidth = window.innerWidth;
         originalWindowHeight = window.innerHeight;
         
-        // Blokir semua event copy/paste/contextmenu
+        // AKTIFKAN WAKE LOCK (ANTI SLEEP)
+        requestWakeLock();
+        
+        // Listener untuk wake lock saat tab terlihat kembali
+        document.addEventListener('visibilitychange', handleVisibilityChangeForWakeLock);
+        
         const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
@@ -605,7 +690,6 @@
             });
         });
         
-        // Blokir shortcut berbahaya
         window.addEventListener('keydown', (e) => {
             if (!studentExamActive || examLocked) return;
             const dangerous = ['F12', 'F5', 'Home', 'End', 'c', 'C', 'p', 'P', 's', 'S', 'u', 'U'];
@@ -618,14 +702,12 @@
             if (e.key === 'Escape') e.preventDefault();
         });
         
-        // Deteksi keluar tab
         setInterval(() => {
             if (!studentExamActive || examLocked) return;
             if (document.hidden) triggerViolation("Pindah tab / buka aplikasi lain");
             if (!document.hasFocus()) triggerViolation("Kehilangan fokus");
         }, 300);
         
-        // Deteksi screenshot via blur+focus
         window.addEventListener('blur', () => { if (studentExamActive && !examLocked) lastBlurTime = Date.now(); });
         window.addEventListener('focus', () => {
             if (studentExamActive && !examLocked && lastBlurTime > 0) {
@@ -634,7 +716,6 @@
             }
         });
         
-        // Deteksi resize (split window)
         window.addEventListener('resize', () => {
             if (studentExamActive && !examLocked) detectSplitWindow();
         });
@@ -726,7 +807,7 @@
     }
     
     init();
-    console.log("Secure Exam Sukabumi 2 - Siap digunakan");
+    console.log("Secure Exam Sukabumi 2 - Siap digunakan dengan Anti-Sleep (Wake Lock)");
 </script>
 </body>
 </html>
