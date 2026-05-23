@@ -116,17 +116,22 @@
         }
         .generated-link {
             background: #0a1f1c;
-            padding: 0.6rem;
+            padding: 0.8rem;
             border-radius: 0.8rem;
             word-break: break-all;
             font-family: monospace;
             font-size: 0.7rem;
             margin-top: 0.8rem;
             color: #7ee0c0;
+            cursor: pointer;
+            border: 1px dashed #2e7d64;
+        }
+        .generated-link:active {
+            background: #1a3a35;
         }
         .hidden { display: none; }
         
-        /* LAYAR KUNCI YANG MENUTUP TOTAL */
+        /* LAYAR KUNCI */
         .lock-overlay {
             position: fixed;
             top: 0;
@@ -143,9 +148,6 @@
             padding: 1rem;
             cursor: default;
             pointer-events: auto;
-        }
-        .lock-overlay ~ * {
-            pointer-events: none;
         }
         .lock-card {
             background: #1e1e2a;
@@ -164,91 +166,35 @@
             70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
             100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
         }
-        .lock-card h2 {
-            color: #ffb347;
-            margin: 1rem 0;
-            font-size: 1.5rem;
-        }
-        .lock-card p {
-            color: #ccc;
-            font-size: 0.85rem;
-            margin: 0.5rem 0;
-        }
-        .lock-card input {
-            background: #0f172a;
-            border: 1px solid #f97316;
-            color: white;
-            text-align: center;
-            font-size: 1rem;
-            margin-top: 1rem;
-        }
-        .lock-card button {
-            background: linear-gradient(95deg, #f97316, #dc2626);
-            margin-top: 1rem;
-        }
+        .lock-card h2 { color: #ffb347; margin: 1rem 0; font-size: 1.5rem; }
+        .lock-card p { color: #ccc; font-size: 0.85rem; margin: 0.5rem 0; }
+        .lock-card input { background: #0f172a; border: 1px solid #f97316; color: white; text-align: center; font-size: 1rem; margin-top: 1rem; }
+        .lock-card button { background: linear-gradient(95deg, #f97316, #dc2626); margin-top: 1rem; }
         
-        /* PERBAIKAN: Mode ujian - iframe FULL LAYAR */
+        /* MODE UJIAN FULLSCREEN */
         .exam-mode {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
-        .exam-mode .header {
-            display: none;
-        }
-        .exam-mode .panel {
-            padding: 0;
-            margin: 0;
-            height: 100%;
-            width: 100%;
-        }
-        .exam-mode #studentExamArea {
-            display: block;
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
-        }
-        .exam-wrapper {
-            width: 100%;
-            height: 100%;
-            background: white;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        .exam-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: white;
-            display: block;
-        }
+        .exam-mode .header { display: none !important; }
+        .exam-mode .panel { padding: 0 !important; margin: 0 !important; height: 100% !important; width: 100% !important; }
+        .exam-mode #studentExamArea { display: block !important; width: 100% !important; height: 100% !important; padding: 0 !important; margin: 0 !important; }
+        .exam-wrapper { width: 100%; height: 100%; background: white; margin: 0; padding: 0; overflow: hidden; }
+        .exam-iframe { width: 100%; height: 100%; border: none; background: white; display: block; }
         
-        .qr-info {
-            background: #1e3a37;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            margin-top: 0.5rem;
-            font-size: 0.7rem;
-        }
-        
-        .test-mode-btn {
-            background: #5a3a1e;
-            margin-top: 0.5rem;
-            font-size: 0.7rem;
-        }
+        .qr-info { background: #1e3a37; padding: 0.5rem; border-radius: 0.5rem; text-align: center; margin-top: 0.5rem; font-size: 0.7rem; }
+        .test-mode-btn { background: #5a3a1e; margin-top: 0.5rem; font-size: 0.7rem; }
         
         /* BANNED SECTION */
         .banned-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.99);
             backdrop-filter: blur(20px);
             z-index: 100000;
@@ -268,12 +214,9 @@
             width: 90%;
             border: 2px solid #ef4444;
         }
-        .banned-card h2 {
-            color: #ef4444;
-            margin: 1rem 0;
-        }
+        .banned-card h2 { color: #ef4444; margin: 1rem 0; }
         
-        /* Wake Lock status indicator */
+        /* Wake Lock status */
         .wake-lock-status {
             position: fixed;
             bottom: 5px;
@@ -287,8 +230,27 @@
             font-family: monospace;
             pointer-events: none;
         }
-        .exam-mode .wake-lock-status {
-            z-index: 10000;
+        .exam-mode .wake-lock-status { z-index: 10000; }
+        
+        /* Toast notifikasi */
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e4a3a;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 20000;
+            animation: fadeOut 2s ease forwards;
+            pointer-events: none;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; bottom: 30px; }
+            70% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 50px; visibility: hidden; }
         }
     </style>
 </head>
@@ -312,7 +274,7 @@
                 <button id="generateBtn">🔒 GENERATE LINK UJIAN AMAN</button>
                 <div id="generatedResult" class="hidden">
                     <div style="margin-top: 1rem;">
-                        <label style="color:#9cd4c2;">✅ LINK UJIAN AMAN:</label>
+                        <label style="color:#9cd4c2;">✅ LINK UJIAN AMAN (Klik untuk salin):</label>
                         <div class="generated-link" id="secureLinkDisplay"></div>
                         <button id="copyLinkBtn" class="btn-outline" style="margin-top: 0.5rem;">📋 Salin Link</button>
                         <button id="testLinkBtn" class="test-mode-btn" style="margin-top: 0.5rem;">🔍 Uji Coba Link</button>
@@ -336,7 +298,6 @@
 <script>
     // ======================= KONFIGURASI =======================
     const MASTER_PASSWORD = "r4h4514";
-    const ENCRYPTION_KEY = "Sukabumi2Secure2025";
     const STORAGE_BAN_KEY = "secure_exam_banned";
     const STORAGE_BAN_REASON_KEY = "secure_exam_ban_reason";
     
@@ -350,9 +311,51 @@
     
     // Wake Lock
     let wakeLock = null;
-    let wakeLockInterval = null;
     const wakeLockStatusSpan = document.getElementById('wakeLockStatus');
     
+    // Toast notification
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.style.background = isError ? '#c0392b' : '#1e4a3a';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
+    // ======================= FULLSCREEN CONTROLLER =======================
+    async function enterFullscreen() {
+        const elem = document.documentElement;
+        const methods = ['requestFullscreen', 'webkitRequestFullscreen', 'msRequestFullscreen'];
+        for (let method of methods) {
+            if (elem[method]) {
+                try {
+                    await elem[method]();
+                    console.log("✅ Fullscreen aktif");
+                    return true;
+                } catch(e) {
+                    console.log("Fullscreen ditolak:", e);
+                }
+            }
+        }
+        return false;
+    }
+    
+    function exitFullscreen() {
+        const methods = ['exitFullscreen', 'webkitExitFullscreen', 'msExitFullscreen'];
+        for (let method of methods) {
+            if (document[method]) {
+                document[method]().catch(e=>{});
+                break;
+            }
+        }
+    }
+    
+    function isFullscreenActive() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+    
+    // ======================= WAKE LOCK =======================
     async function requestWakeLock() {
         if (!studentExamActive || examLocked) return;
         if ('wakeLock' in navigator) {
@@ -366,7 +369,6 @@
                     if (studentExamActive && !examLocked) setTimeout(() => requestWakeLock(), 500);
                 });
             } catch (err) {
-                console.error("Wake Lock gagal:", err);
                 if (wakeLockStatusSpan) {
                     wakeLockStatusSpan.innerHTML = '🔴 Wake Lock Gagal';
                     wakeLockStatusSpan.style.color = '#e74c3c';
@@ -385,7 +387,6 @@
             wakeLock.release().catch(e=>{});
             wakeLock = null;
         }
-        if (wakeLockInterval) clearInterval(wakeLockInterval);
     }
     
     // ======================= FUNGSI BAN =======================
@@ -413,6 +414,7 @@
     
     function showBannedScreen(reason) {
         releaseWakeLock();
+        exitFullscreen();
         if (studentExamActive) { studentExamActive = false; examLocked = true; }
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         
@@ -436,16 +438,22 @@
         `;
         document.body.appendChild(overlay);
         
-        document.getElementById('bannedUnlockBtn').onclick = () => {
-            if (document.getElementById('bannedUnlockPassword').value === MASTER_PASSWORD) clearBan();
-            else alert("Password salah!");
+        document.getElementById('bannedUnlockBtn').onclick = async () => {
+            const pwd = document.getElementById('bannedUnlockPassword').value;
+            if (pwd === MASTER_PASSWORD) {
+                clearBan();
+            } else {
+                showToast("Password salah!", true);
+                document.getElementById('bannedUnlockPassword').value = "";
+            }
         };
     }
     
-    // ======================= LAYAR KUNCI =======================
+    // ======================= LAYAR KUNCI SEMENTARA =======================
     function showLockScreen(reason) {
         if (examIframe) examIframe.style.pointerEvents = 'none';
         releaseWakeLock();
+        exitFullscreen();
         
         const existingOverlay = document.getElementById('tempLockOverlay');
         if (existingOverlay) existingOverlay.remove();
@@ -473,7 +481,7 @@
         examLocked = true;
         studentExamActive = false;
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
-        if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+        exitFullscreen();
         releaseWakeLock();
         showLockScreen(reason);
     }
@@ -503,13 +511,44 @@
     
     function generateSecureLink(formUrl) {
         if (!formUrl || !formUrl.includes("docs.google.com/forms")) {
-            alert("❌ Link harus Google Form yang valid!");
+            showToast("Link harus Google Form yang valid!", true);
             return null;
         }
         const encrypted = simpleEncrypt(formUrl);
         if (!encrypted) return null;
         const baseUrl = window.location.href.split('?')[0].split('#')[0];
         return `${baseUrl}?exam=${encodeURIComponent(encrypted)}`;
+    }
+    
+    // ======================= COPY LINK (PERBAIKAN) =======================
+    async function copyToClipboard(text) {
+        // Method 1: Clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch(e) {
+                console.log("Clipboard API gagal:", e);
+            }
+        }
+        
+        // Method 2: Fallback dengan textarea
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            const success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (success) return true;
+        } catch(e) {
+            console.log("Fallback copy gagal:", e);
+        }
+        
+        return false;
     }
     
     // ======================= MODE GURU =======================
@@ -528,33 +567,55 @@
     
     generateBtn.onclick = () => {
         if (guruPasswordInput.value !== MASTER_PASSWORD) {
-            alert("❌ Password salah!");
+            showToast("Password salah!", true);
             guruPasswordInput.value = "";
             return;
         }
         const url = formLinkInput.value.trim();
-        if (!url) { alert("⚠️ Isi link Google Form!"); return; }
+        if (!url) { showToast("Isi link Google Form terlebih dahulu!", true); return; }
         const secureLink = generateSecureLink(url);
         if (secureLink) {
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
             guruPasswordInput.value = "";
-        } else alert("❌ Gagal generate link.");
+            showToast("✅ Link berhasil digenerate!");
+        } else {
+            showToast("Gagal generate link!", true);
+        }
     };
     
-    copyLinkBtn.onclick = () => {
+    // Copy link - PERBAIKAN
+    copyLinkBtn.onclick = async () => {
         const link = secureLinkDisplay.innerText;
         if (link && link.includes('?exam=')) {
-            navigator.clipboard.writeText(link);
-            alert("✅ Link disalin!");
-        } else alert("❌ Generate link dulu!");
+            const success = await copyToClipboard(link);
+            if (success) {
+                showToast("✅ Link berhasil disalin!");
+            } else {
+                showToast("❌ Gagal menyalin, silakan salin manual", true);
+                // Tampilkan alert manual sebagai fallback
+                alert("Salin link berikut:\n\n" + link);
+            }
+        } else {
+            showToast("Generate link terlebih dahulu!", true);
+        }
+    };
+    
+    // Klik pada teks link juga bisa copy
+    secureLinkDisplay.onclick = async () => {
+        const link = secureLinkDisplay.innerText;
+        if (link && link.includes('?exam=')) {
+            const success = await copyToClipboard(link);
+            if (success) showToast("✅ Link disalin!");
+            else alert("Salin manual:\n" + link);
+        }
     };
     
     if (testLinkBtn) {
         testLinkBtn.onclick = () => {
             const link = secureLinkDisplay.innerText;
             if (link && link.includes('?exam=')) window.open(link, '_blank');
-            else alert("❌ Generate link dulu!");
+            else showToast("Generate link terlebih dahulu!", true);
         };
     }
     
@@ -577,15 +638,21 @@
     }
     
     // ======================= PROTEKSI SISWA =======================
-    function startStudentProtection() {
+    async function startStudentProtection() {
         originalWindowWidth = window.innerWidth;
         originalWindowHeight = window.innerHeight;
+        
+        // Aktifkan fullscreen
+        await enterFullscreen();
         requestWakeLock();
         
         const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
-                if (studentExamActive && !examLocked) { e.preventDefault(); triggerViolation(`Percobaan ${ev}`); }
+                if (studentExamActive && !examLocked) { 
+                    e.preventDefault(); 
+                    triggerViolation(`Percobaan ${ev}`);
+                }
             });
         });
         
@@ -621,33 +688,30 @@
             if (studentExamActive && !examLocked) { history.pushState(null, null, location.href); triggerViolation("Tombol back"); }
         });
         
-        // Fullscreen kiosk
-        const elem = document.documentElement;
-        const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen;
-        if (requestFS) requestFS.call(elem).catch(e=>{});
-        
-        const fsHandler = () => {
-            if (studentExamActive && !examLocked && !(document.fullscreenElement || document.webkitFullscreenElement)) {
-                triggerViolation("Keluar fullscreen");
+        // Monitor fullscreen - jika keluar fullscreen, trigger violation
+        const fsMonitor = () => {
+            if (studentExamActive && !examLocked && !isFullscreenActive()) {
+                triggerViolation("Keluar dari mode fullscreen");
             }
         };
-        document.addEventListener('fullscreenchange', fsHandler);
-        document.addEventListener('webkitfullscreenchange', fsHandler);
+        document.addEventListener('fullscreenchange', fsMonitor);
+        document.addEventListener('webkitfullscreenchange', fsMonitor);
         
-        fullscreenCheckInterval = setInterval(() => {
+        // Interval untuk memastikan fullscreen tetap aktif
+        fullscreenCheckInterval = setInterval(async () => {
             if (!studentExamActive || examLocked) { clearInterval(fullscreenCheckInterval); return; }
-            if (!(document.fullscreenElement || document.webkitFullscreenElement) && !examLocked) {
-                requestFS?.call(elem).catch(e=>{});
+            if (!isFullscreenActive() && !examLocked) {
+                await enterFullscreen();
             }
         }, 2000);
     }
     
     // ======================= LOAD STUDENT EXAM =======================
-    function loadStudentExam(encryptedToken) {
+    async function loadStudentExam(encryptedToken) {
         if (checkBanStatus()) return false;
         const originalUrl = simpleDecrypt(encryptedToken);
         if (!originalUrl) {
-            alert("❌ Link ujian tidak valid!");
+            showToast("Link ujian tidak valid!", true);
             window.location.href = window.location.pathname;
             return false;
         }
@@ -663,7 +727,7 @@
         modeBadge.innerText = "🎓 UJIAN AKTIF";
         
         examIframe.src = originalUrl;
-        startStudentProtection();
+        await startStudentProtection();
         return true;
     }
     
@@ -672,11 +736,11 @@
         return new URLSearchParams(window.location.search).get('exam');
     }
     
-    function init() {
+    async function init() {
         if (checkBanStatus()) return;
         const token = getExamTokenFromURL();
         if (token) {
-            loadStudentExam(token);
+            await loadStudentExam(token);
         } else {
             guruSection.classList.remove('hidden');
             studentExamArea.classList.add('hidden');
