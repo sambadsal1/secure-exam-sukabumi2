@@ -187,8 +187,31 @@
             margin-top: 1rem;
         }
         
+        /* PERBAIKAN: Mode ujian - iframe FULL LAYAR */
+        .exam-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .exam-mode .header {
+            display: none;
+        }
+        .exam-mode .panel {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        .exam-mode #studentExamArea {
+            display: block;
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
         .exam-wrapper {
-            position: relative;
             width: 100%;
             height: 100%;
             background: white;
@@ -197,34 +220,11 @@
             overflow: hidden;
         }
         .exam-iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             border: none;
             background: white;
-        }
-        
-        .exam-mode .panel {
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
-        }
-        .exam-mode #studentExamArea {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            width: 100%;
-            padding: 0;
-            margin: 0;
-        }
-        
-        @media (max-width: 700px) {
-            .title { font-size: 0.85rem; }
-            .logo-img { width: 35px; height: 35px; }
+            display: block;
         }
         
         .qr-info {
@@ -273,7 +273,7 @@
             margin: 1rem 0;
         }
         
-        /* Wake Lock status indicator (small, non-intrusive) */
+        /* Wake Lock status indicator */
         .wake-lock-status {
             position: fixed;
             bottom: 5px;
@@ -286,6 +286,9 @@
             z-index: 1000;
             font-family: monospace;
             pointer-events: none;
+        }
+        .exam-mode .wake-lock-status {
+            z-index: 10000;
         }
     </style>
 </head>
@@ -345,15 +348,13 @@
     let originalWindowWidth = window.innerWidth;
     let originalWindowHeight = window.innerHeight;
     
-    // ========== WAKE LOCK (ANTI SLEEP) ==========
+    // Wake Lock
     let wakeLock = null;
     let wakeLockInterval = null;
     const wakeLockStatusSpan = document.getElementById('wakeLockStatus');
     
     async function requestWakeLock() {
         if (!studentExamActive || examLocked) return;
-        
-        // Cek apakah Wake Lock API didukung
         if ('wakeLock' in navigator) {
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
@@ -361,73 +362,33 @@
                     wakeLockStatusSpan.innerHTML = '🟢 Layar Tetap Aktif';
                     wakeLockStatusSpan.style.color = '#2ecc71';
                 }
-                console.log("✅ Wake Lock aktif - layar tidak akan sleep");
-                
-                // Listener jika wake lock dilepas (misal karena pindah tab)
                 wakeLock.addEventListener('release', () => {
-                    console.log("⚠️ Wake Lock dilepas, mencoba request ulang...");
-                    if (studentExamActive && !examLocked) {
-                        setTimeout(() => requestWakeLock(), 500);
-                    }
+                    if (studentExamActive && !examLocked) setTimeout(() => requestWakeLock(), 500);
                 });
             } catch (err) {
-                console.error("❌ Gagal mengaktifkan Wake Lock:", err);
+                console.error("Wake Lock gagal:", err);
                 if (wakeLockStatusSpan) {
                     wakeLockStatusSpan.innerHTML = '🔴 Wake Lock Gagal';
                     wakeLockStatusSpan.style.color = '#e74c3c';
                 }
-                // Fallback: interval dummy untuk menjaga CPU aktif
-                startDummyKeepAlive();
             }
         } else {
-            console.warn("⚠️ Wake Lock API tidak didukung browser ini");
             if (wakeLockStatusSpan) {
-                wakeLockStatusSpan.innerHTML = '⚠️ No Wake Lock Support';
+                wakeLockStatusSpan.innerHTML = '⚠️ No Wake Lock';
                 wakeLockStatusSpan.style.color = '#f39c12';
             }
-            startDummyKeepAlive();
         }
     }
     
     function releaseWakeLock() {
-        if (wakeLock !== null) {
-            wakeLock.release().then(() => {
-                console.log("🔓 Wake Lock dilepas");
-                wakeLock = null;
-            }).catch(err => console.error("Gagal release wake lock:", err));
+        if (wakeLock) {
+            wakeLock.release().catch(e=>{});
+            wakeLock = null;
         }
-        if (wakeLockInterval) {
-            clearInterval(wakeLockInterval);
-            wakeLockInterval = null;
-        }
-        if (wakeLockStatusSpan && !studentExamActive) {
-            wakeLockStatusSpan.innerHTML = '⚫ Layar Normal';
-            wakeLockStatusSpan.style.color = '#95a5a6';
-        }
-    }
-    
-    // Fallback jika Wake Lock API tidak didukung
-    function startDummyKeepAlive() {
         if (wakeLockInterval) clearInterval(wakeLockInterval);
-        // Interval kecil untuk menjaga CPU tetap aktif (mencegah sleep dalam beberapa kasus)
-        wakeLockInterval = setInterval(() => {
-            if (studentExamActive && !examLocked) {
-                // Dummy operation
-                const dummy = Date.now();
-            }
-        }, 10000);
     }
     
-    // Re-request wake lock saat halaman terlihat kembali
-    function handleVisibilityChangeForWakeLock() {
-        if (studentExamActive && !examLocked && !document.hidden) {
-            if (wakeLock === null || wakeLock.released === true) {
-                requestWakeLock();
-            }
-        }
-    }
-    
-    // ======================= FUNGSI BAN PERMANEN =======================
+    // ======================= FUNGSI BAN =======================
     function checkBanStatus() {
         const banned = localStorage.getItem(STORAGE_BAN_KEY);
         if (banned === 'true') {
@@ -451,13 +412,8 @@
     }
     
     function showBannedScreen(reason) {
-        // Hentikan wake lock
         releaseWakeLock();
-        
-        if (studentExamActive) {
-            studentExamActive = false;
-            examLocked = true;
-        }
+        if (studentExamActive) { studentExamActive = false; examLocked = true; }
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         
         const existingOverlay = document.getElementById('bannedOverlay');
@@ -471,40 +427,24 @@
                 <span style="font-size: 3rem;">🚫🔒</span>
                 <h2>PERANGKAT TERKUNCI!</h2>
                 <p style="color: #ccc; margin: 1rem 0;">
-                    Perangkat ini telah terdeteksi melakukan pelanggaran:<br>
-                    <strong style="color: #f97316;">${reason}</strong>
+                    Pelanggaran:<br><strong style="color: #f97316;">${reason}</strong>
                 </p>
-                <p style="color: #aaa; font-size: 0.8rem;">
-                    Ujian tidak dapat diakses dari perangkat ini.<br>
-                    Hubungi guru untuk membuka kunci.
-                </p>
+                <p style="color: #aaa; font-size: 0.8rem;">Hubungi guru untuk membuka kunci.</p>
                 <input type="password" id="bannedUnlockPassword" placeholder="Password Guru" style="margin-top: 1rem;">
-                <button id="bannedUnlockBtn">🔓 BUKA KUNCI PERANGKAT</button>
+                <button id="bannedUnlockBtn">🔓 BUKA KUNCI</button>
             </div>
         `;
         document.body.appendChild(overlay);
         
         document.getElementById('bannedUnlockBtn').onclick = () => {
-            const pwd = document.getElementById('bannedUnlockPassword').value;
-            if (pwd === MASTER_PASSWORD) {
-                clearBan();
-            } else {
-                alert("❌ Password salah!");
-                document.getElementById('bannedUnlockPassword').value = "";
-            }
+            if (document.getElementById('bannedUnlockPassword').value === MASTER_PASSWORD) clearBan();
+            else alert("Password salah!");
         };
-        document.getElementById('bannedUnlockPassword').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') document.getElementById('bannedUnlockBtn').click();
-        });
     }
     
-    // ======================= LAYAR KUNCI SEMENTARA =======================
+    // ======================= LAYAR KUNCI =======================
     function showLockScreen(reason) {
-        if (examIframe) {
-            examIframe.style.pointerEvents = 'none';
-        }
-        
-        // Hentikan wake lock sementara
+        if (examIframe) examIframe.style.pointerEvents = 'none';
         releaseWakeLock();
         
         const existingOverlay = document.getElementById('tempLockOverlay');
@@ -517,74 +457,50 @@
             <div class="lock-card">
                 <span style="font-size: 3rem;">🔒⚠️</span>
                 <h2>UJIAN TERKUNCI!</h2>
-                <p style="color: #ccc;">
-                    Pelanggaran terdeteksi:<br>
-                    <strong style="color: #f97316;">${reason}</strong>
-                </p>
-                <p style="color: #aaa; font-size: 0.8rem; margin-top: 1rem;">
-                    Perangkat ini akan diblokir.<br>
-                    Hubungi guru untuk membuka kunci.
-                </p>
-                <div style="margin-top: 1rem; padding: 0.5rem; background: #2d2a1e; border-radius: 0.5rem;">
-                    <p style="color: #ffb347; font-size: 0.7rem;">⏱️ Perangkat akan diblokir permanen dalam 3 detik...</p>
+                <p>Pelanggaran: <strong style="color:#f97316;">${reason}</strong></p>
+                <div style="margin-top:1rem;padding:0.5rem;background:#2d2a1e;border-radius:0.5rem;">
+                    <p style="color:#ffb347;">⏱️ Perangkat akan diblokir permanen dalam 3 detik...</p>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
         
-        setTimeout(() => {
-            setBan(reason);
-        }, 3000);
+        setTimeout(() => setBan(reason), 3000);
     }
     
-    // ======================= FUNGSI PELANGGARAN =======================
     function triggerViolation(reason) {
         if (!studentExamActive || examLocked) return;
-        
-        console.warn("🔴 VIOLATION:", reason);
         examLocked = true;
         studentExamActive = false;
-        
         if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
         if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
-        
-        // Hentikan wake lock
         releaseWakeLock();
-        
         showLockScreen(reason);
     }
     
-    // ======================= FUNGSI ENKRIPSI =======================
+    // ======================= ENKRIPSI =======================
     function simpleEncrypt(url) {
         try {
             let text = url + "||" + Date.now();
             let encoded = btoa(unescape(encodeURIComponent(text)));
             let reversed = encoded.split('').reverse().join('');
-            let final = btoa(reversed + "::" + ENCRYPTION_KEY);
-            return final;
-        } catch(e) {
-            console.error("Encrypt error:", e);
-            return null;
-        }
+            return btoa(reversed + "::" + "Sukabumi2Secure2025");
+        } catch(e) { return null; }
     }
     
     function simpleDecrypt(token) {
         try {
             let decoded = atob(token);
             let parts = decoded.split("::");
-            if (parts.length !== 2 || parts[1] !== ENCRYPTION_KEY) return null;
+            if (parts.length !== 2 || parts[1] !== "Sukabumi2Secure2025") return null;
             let reversed = parts[0].split('').reverse().join('');
             let original = decodeURIComponent(escape(atob(reversed)));
             let urlPart = original.split("||")[0];
             if (urlPart && urlPart.includes("docs.google.com/forms")) return urlPart;
             return null;
-        } catch(e) { 
-            console.error("Decrypt error:", e);
-            return null; 
-        }
+        } catch(e) { return null; }
     }
     
-    // ======================= GENERATE LINK =======================
     function generateSecureLink(formUrl) {
         if (!formUrl || !formUrl.includes("docs.google.com/forms")) {
             alert("❌ Link harus Google Form yang valid!");
@@ -597,105 +513,86 @@
     }
     
     // ======================= MODE GURU =======================
+    const guruSection = document.getElementById('guruSection');
+    const studentExamArea = document.getElementById('studentExamArea');
+    const examIframe = document.getElementById('examIframe');
+    const modeBadge = document.getElementById('modeBadge');
+    const generateBtn = document.getElementById('generateBtn');
+    const formLinkInput = document.getElementById('formLinkInput');
+    const guruPasswordInput = document.getElementById('guruPasswordInput');
+    const generatedResult = document.getElementById('generatedResult');
+    const secureLinkDisplay = document.getElementById('secureLinkDisplay');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const testLinkBtn = document.getElementById('testLinkBtn');
+    const appContainer = document.getElementById('app');
+    
     generateBtn.onclick = () => {
-        const pwd = guruPasswordInput.value;
-        if (pwd !== MASTER_PASSWORD) {
+        if (guruPasswordInput.value !== MASTER_PASSWORD) {
             alert("❌ Password salah!");
             guruPasswordInput.value = "";
-            guruPasswordInput.focus();
             return;
         }
         const url = formLinkInput.value.trim();
-        if (!url) {
-            alert("⚠️ Isi link Google Form terlebih dahulu!");
-            return;
-        }
+        if (!url) { alert("⚠️ Isi link Google Form!"); return; }
         const secureLink = generateSecureLink(url);
         if (secureLink) {
             secureLinkDisplay.innerText = secureLink;
             generatedResult.classList.remove('hidden');
-            generatedResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             guruPasswordInput.value = "";
-        } else {
-            alert("❌ Gagal generate link.");
-        }
+        } else alert("❌ Gagal generate link.");
     };
-    
-    guruPasswordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') generateBtn.click();
-    });
     
     copyLinkBtn.onclick = () => {
         const link = secureLinkDisplay.innerText;
         if (link && link.includes('?exam=')) {
-            navigator.clipboard.writeText(link).then(() => {
-                alert("✅ Link aman disalin!");
-            }).catch(() => alert("❌ Gagal menyalin"));
-        } else {
-            alert("❌ Generate link terlebih dahulu!");
-        }
+            navigator.clipboard.writeText(link);
+            alert("✅ Link disalin!");
+        } else alert("❌ Generate link dulu!");
     };
     
     if (testLinkBtn) {
         testLinkBtn.onclick = () => {
             const link = secureLinkDisplay.innerText;
             if (link && link.includes('?exam=')) window.open(link, '_blank');
-            else alert("❌ Generate link terlebih dahulu!");
+            else alert("❌ Generate link dulu!");
         };
     }
     
-    // ======================= DETEKSI RESIZE =======================
+    // ======================= DETEKSI SPLIT WINDOW =======================
     function detectSplitWindow() {
         if (!studentExamActive || examLocked) return;
-        const currentWidth = window.innerWidth;
-        const currentHeight = window.innerHeight;
-        
-        const widthChange = Math.abs(currentWidth - originalWindowWidth) / originalWindowWidth;
-        const heightChange = Math.abs(currentHeight - originalWindowHeight) / originalWindowHeight;
+        const widthChange = Math.abs(window.innerWidth - originalWindowWidth) / originalWindowWidth;
+        const heightChange = Math.abs(window.innerHeight - originalWindowHeight) / originalWindowHeight;
         
         if (widthChange > 0.3 && heightChange > 0.3) {
-            originalWindowWidth = currentWidth;
-            originalWindowHeight = currentHeight;
+            originalWindowWidth = window.innerWidth;
+            originalWindowHeight = window.innerHeight;
             return;
         }
-        
         if ((widthChange > 0.3 && heightChange < 0.1) || (heightChange > 0.3 && widthChange < 0.1)) {
-            triggerViolation("Split screen / multi window terdeteksi");
-        } else if (widthChange > 0.5 || heightChange > 0.5) {
-            triggerViolation("Perubahan resolusi ekstrim terdeteksi");
+            triggerViolation("Split screen terdeteksi");
         }
-        
-        originalWindowWidth = currentWidth;
-        originalWindowHeight = currentHeight;
+        originalWindowWidth = window.innerWidth;
+        originalWindowHeight = window.innerHeight;
     }
     
     // ======================= PROTEKSI SISWA =======================
     function startStudentProtection() {
         originalWindowWidth = window.innerWidth;
         originalWindowHeight = window.innerHeight;
-        
-        // AKTIFKAN WAKE LOCK (ANTI SLEEP)
         requestWakeLock();
-        
-        // Listener untuk wake lock saat tab terlihat kembali
-        document.addEventListener('visibilitychange', handleVisibilityChangeForWakeLock);
         
         const blockEvents = ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'selectstart'];
         blockEvents.forEach(ev => {
             document.addEventListener(ev, (e) => {
-                if (studentExamActive && !examLocked) {
-                    e.preventDefault();
-                    triggerViolation(`Percobaan ${ev}`);
-                }
+                if (studentExamActive && !examLocked) { e.preventDefault(); triggerViolation(`Percobaan ${ev}`); }
             });
         });
         
         window.addEventListener('keydown', (e) => {
             if (!studentExamActive || examLocked) return;
             const dangerous = ['F12', 'F5', 'Home', 'End', 'c', 'C', 'p', 'P', 's', 'S', 'u', 'U'];
-            if ((e.ctrlKey && dangerous.includes(e.key)) ||
-                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
-                e.key === 'F12' || e.key === 'F5') {
+            if ((e.ctrlKey && dangerous.includes(e.key)) || e.key === 'F12' || e.key === 'F5') {
                 e.preventDefault();
                 triggerViolation(`Shortcut ilegal (${e.key})`);
             }
@@ -704,50 +601,34 @@
         
         setInterval(() => {
             if (!studentExamActive || examLocked) return;
-            if (document.hidden) triggerViolation("Pindah tab / buka aplikasi lain");
+            if (document.hidden) triggerViolation("Pindah tab");
             if (!document.hasFocus()) triggerViolation("Kehilangan fokus");
         }, 300);
         
         window.addEventListener('blur', () => { if (studentExamActive && !examLocked) lastBlurTime = Date.now(); });
         window.addEventListener('focus', () => {
-            if (studentExamActive && !examLocked && lastBlurTime > 0) {
-                const duration = Date.now() - lastBlurTime;
-                if (duration > 50 && duration < 800) triggerViolation("Terdeteksi screenshot");
+            if (studentExamActive && !examLocked && lastBlurTime > 0 && Date.now() - lastBlurTime < 800) {
+                triggerViolation("Terdeteksi screenshot");
             }
         });
         
-        window.addEventListener('resize', () => {
-            if (studentExamActive && !examLocked) detectSplitWindow();
-        });
-        
+        window.addEventListener('resize', () => { if (studentExamActive && !examLocked) detectSplitWindow(); });
         window.addEventListener('beforeprint', () => triggerViolation("Percobaan print"));
-        window.addEventListener('beforeunload', (e) => {
-            if (studentExamActive && !examLocked) {
-                e.preventDefault();
-                triggerViolation("Mencoba keluar halaman");
-            }
-        });
+        window.addEventListener('beforeunload', (e) => { if (studentExamActive && !examLocked) { e.preventDefault(); triggerViolation("Keluar halaman"); } });
         
         history.pushState(null, null, location.href);
         window.addEventListener('popstate', () => {
-            if (studentExamActive && !examLocked) {
-                history.pushState(null, null, location.href);
-                triggerViolation("Tombol back ditekan");
-            }
+            if (studentExamActive && !examLocked) { history.pushState(null, null, location.href); triggerViolation("Tombol back"); }
         });
         
-        forceFullscreenKiosk();
-    }
-    
-    function forceFullscreenKiosk() {
+        // Fullscreen kiosk
         const elem = document.documentElement;
-        const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
-        if (requestFS) requestFS.call(elem).catch(e => console.log("Fullscreen perlu interaksi"));
+        const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen;
+        if (requestFS) requestFS.call(elem).catch(e=>{});
         
         const fsHandler = () => {
-            if (studentExamActive && !examLocked) {
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-                if (!isFS) triggerViolation("Keluar dari mode fullscreen");
+            if (studentExamActive && !examLocked && !(document.fullscreenElement || document.webkitFullscreenElement)) {
+                triggerViolation("Keluar fullscreen");
             }
         };
         document.addEventListener('fullscreenchange', fsHandler);
@@ -755,15 +636,15 @@
         
         fullscreenCheckInterval = setInterval(() => {
             if (!studentExamActive || examLocked) { clearInterval(fullscreenCheckInterval); return; }
-            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            if (!isFS && !examLocked) requestFS?.call(elem).catch(e => {});
+            if (!(document.fullscreenElement || document.webkitFullscreenElement) && !examLocked) {
+                requestFS?.call(elem).catch(e=>{});
+            }
         }, 2000);
     }
     
-    // ======================= MEMUAT UJIAN SISWA =======================
+    // ======================= LOAD STUDENT EXAM =======================
     function loadStudentExam(encryptedToken) {
         if (checkBanStatus()) return false;
-        
         const originalUrl = simpleDecrypt(encryptedToken);
         if (!originalUrl) {
             alert("❌ Link ujian tidak valid!");
@@ -774,40 +655,36 @@
         studentExamActive = true;
         examLocked = false;
         
+        // Sembunyikan header dan tampilkan mode ujian penuh layar
         guruSection.classList.add('hidden');
         studentExamArea.classList.remove('hidden');
-        modeBadge.innerText = "🎓 UJIAN AKTIF | LOCKDOWN MODE";
+        document.body.classList.add('exam-mode');
         appContainer.classList.add('exam-mode');
+        modeBadge.innerText = "🎓 UJIAN AKTIF";
         
         examIframe.src = originalUrl;
         startStudentProtection();
         return true;
     }
     
-    // ======================= DETEKSI PARAMETER URL =======================
+    // ======================= INIT =======================
     function getExamTokenFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('exam');
+        return new URLSearchParams(window.location.search).get('exam');
     }
     
-    // ======================= INISIALISASI =======================
     function init() {
         if (checkBanStatus()) return;
-        
         const token = getExamTokenFromURL();
         if (token) {
-            currentMode = "siswa";
             loadStudentExam(token);
         } else {
-            currentMode = "guru";
             guruSection.classList.remove('hidden');
             studentExamArea.classList.add('hidden');
-            modeBadge.innerText = "🔐 MODE GURU (Generate Link)";
+            modeBadge.innerText = "🔐 MODE GURU";
         }
     }
     
     init();
-    console.log("Secure Exam Sukabumi 2 - Siap digunakan dengan Anti-Sleep (Wake Lock)");
 </script>
 </body>
 </html>
