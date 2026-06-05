@@ -42,7 +42,6 @@
 
         #exam-mode { display: none; flex-direction: column; height: 100vh; width: 100vw; }
         
-        /* PERBAIKAN 1: Menambahkan position relative agar timer absolut bisa presisi di tengah */
         .exam-header {
             background-color: var(--primary-blue); color: white; padding: 8px 15px;
             display: flex; justify-content: space-between; align-items: center;
@@ -61,7 +60,6 @@
         
         #kiosk-gate { display: none; background: #005f8a; color: white; position: fixed; top:0; left:0; width:100%; height:100%; z-index:9998; justify-content:center; align-items:center; flex-direction:column; }
         
-        /* PERBAIKAN 1: Mengubah style agar timer wajib berada di tengah-tengah header */
         .timer-box {
             font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace;
             background: rgba(0, 0, 0, 0.25); padding: 5px 12px; border-radius: 6px;
@@ -92,15 +90,20 @@
     </div>
 
     <div id="generator-mode">
-        <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
+        <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo+SDN'">
         <h2>Generator Ujian Aman</h2>
-        <p>SDN Sukabumi 2 Kota Probolinggo</p>
+        <p style="margin-bottom: 25px; color: #666;">SDN Sukabumi 2 Kota Probolinggo</p>
         
-        <div style="text-align: left; font-size: 14px; color: #555; font-weight: bold; margin-top: 10px;">Link Soal:</div>
+        <div style="text-align: left; font-size: 14px; color: #555; font-weight: bold; margin-top: 10px;">Link Soal (Google Form / Quizizz / Web):</div>
         <input type="url" id="gformUrl" placeholder="Tempel Link Google Form di sini...">
         
-        <!-- PERBAIKAN 2: Menambahkan petunjuk tertulis yang sangat jelas untuk guru baru -->
-        <div style="text-align: left; font-size: 14px; color: #555; font-weight: bold;">Waktu pengerjaan (menit):</div>
+        <div style="text-align: left; background-color: #e2f4ff; padding: 12px; border-left: 4px solid var(--primary-blue); margin: 15px 0 10px 0; border-radius: 4px; box-sizing: border-box;">
+            <p style="margin: 0; font-size: 13px; color: #222; line-height: 1.5;">
+                <strong>Label Edukatif untuk Guru:</strong> Menambahkan elemen label teks tebal bertuliskan "Waktu pengerjaan (menit):" tepat di atas kotak input durasi pada halaman generator agar guru baru langsung memahami fungsinya tanpa kebingungan.
+            </p>
+        </div>
+
+        <div style="text-align: left; font-size: 14px; color: #333; font-weight: bold;">Waktu pengerjaan (menit):</div>
         <input type="number" id="examDuration" placeholder="Contoh: 60, 90, 120" min="1" value="60">
         
         <button type="button" onclick="generateLink()">PROSES LINK UJIAN</button>
@@ -120,7 +123,6 @@
                 </div>
             </div>
             
-            <!-- TIMER POSISI DI TENGAH (MENGGUNAKAN ABSOLUTE CSS) -->
             <div id="timer-container" class="timer-box">00:00:00</div>
             
             <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px; z-index: 11;">Selesai</button>
@@ -321,100 +323,4 @@
         function startKioskMode() {
             triggerFullscreen();
             document.getElementById('kiosk-gate').style.display = 'none';
-            document.getElementById('exam-mode').style.display = 'flex';
-            
-            initTimer(); 
-
-            setTimeout(() => {
-                protectionEnabled = true;
-                enableAntiSleep();
-            }, 2000);
-        }
-
-        if (examUrl) {
-            document.getElementById('generator-mode').style.display = 'none';
-            examActive = true;
-            document.getElementById('form-frame').src = decodeURIComponent(examUrl);
-
-            if (localStorage.getItem('sukabumi2_locked') === 'true') {
-                document.getElementById('exam-mode').style.display = 'flex';
-                protectionEnabled = true;
-                initTimer(); 
-                lockNow();
-            } else {
-                document.getElementById('kiosk-gate').style.display = 'flex';
-            }
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState !== 'visible') lockNow();
-            });
-
-            window.addEventListener('blur', () => {
-                setTimeout(() => {
-                    if (document.activeElement !== document.getElementById('form-frame')) {
-                        lockNow();
-                    }
-                }, 1000);
-            });
-
-            document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
-                    lockNow();
-                }
-            });
-        }
-
-        function generateLink() {
-            let url = document.getElementById('gformUrl').value;
-            let duration = document.getElementById('examDuration').value;
-            
-            if (!url) return alert("Link kosong!");
-            if (!duration || duration < 1) return alert("Masukkan nilai durasi menit ujian yang sah!");
-            
-            if(url.includes('/viewform')) url = url.split('?')[0] + '?embedded=true';
-            
-            const final = window.location.origin + window.location.pathname + "?exam=" + encodeURIComponent(url) + "&time=" + duration;
-            document.getElementById('generatedLink').value = final;
-            document.getElementById('resultArea').style.display = 'block';
-        }
-        
-        function copyLink() {
-            const targetInput = document.getElementById('generatedLink');
-            targetInput.select();
-            targetInput.setSelectionRange(0, 99999);
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(targetInput.value)
-                .then(() => { alert("Link berhasil disalin!"); })
-                .catch(() => {
-                    document.execCommand("copy");
-                    alert("Link berhasil disalin!");
-                });
-            } else {
-                document.execCommand("copy");
-                alert("Link berhasil disalin!");
-            }
-        }
-
-        function requestExit() {
-            unlockingInProgress = true; 
-            document.getElementById('exit-overlay').style.display = 'flex';
-        }
-        
-        function confirmExit() {
-            clearInterval(timerInterval);
-            localStorage.removeItem('sukabumi2_locked');
-            localStorage.removeItem('sukabumi2_endtime'); 
-            if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
-            }
-            window.location.href = window.location.origin + window.location.pathname;
-        }
-        
-        document.getElementById('btnCancelExit').onclick = function() {
-            document.getElementById('exit-overlay').style.display = 'none';
-            setTimeout(() => { unlockingInProgress = false; }, 1000);
-        };
-    </script>
-</body>
-</html>
+            document.getElementById('exam-mode').style.display = '
