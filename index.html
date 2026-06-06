@@ -30,7 +30,7 @@
         }
         .logo-img { max-width: 100px; margin-bottom: 15px; }
         input[type="url"], input[type="text"], input[type="password"], input[type="number"] {
-            width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 2px solid var(--primary-blue);
+            width: 100%; padding: 12px; margin: 10px 0; border: 2px solid var(--primary-blue);
             border-radius: 6px; box-sizing: border-box; font-size: 16px;
         }
         button {
@@ -41,12 +41,9 @@
         .result-box { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; display: none; }
 
         #exam-mode { display: none; flex-direction: column; height: 100vh; width: 100vw; }
-        
-        /* PERBAIKAN 1: Menambahkan position relative agar timer absolut bisa presisi di tengah */
         .exam-header {
             background-color: var(--primary-blue); color: white; padding: 8px 15px;
             display: flex; justify-content: space-between; align-items: center;
-            position: relative; min-height: 40px;
         }
         .exam-header img { height: 35px; background: white; border-radius: 50%; padding: 2px; }
         iframe { flex-grow: 1; border: none; width: 100%; background: white; }
@@ -61,17 +58,12 @@
         
         #kiosk-gate { display: none; background: #005f8a; color: white; position: fixed; top:0; left:0; width:100%; height:100%; z-index:9998; justify-content:center; align-items:center; flex-direction:column; }
         
-        /* PERBAIKAN 1: Mengubah style agar timer wajib berada di tengah-tengah header */
+        /* STYLE BARU FOR TIMER */
         .timer-box {
             font-size: 18px; font-weight: bold; font-family: 'Courier New', Courier, monospace;
             background: rgba(0, 0, 0, 0.25); padding: 5px 12px; border-radius: 6px;
+            margin-left: auto; margin-right: 15px; min-width: 80px; text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            min-width: 80px; text-align: center;
-            z-index: 10;
         }
         .timer-warning {
             background: var(--danger) !important;
@@ -95,13 +87,9 @@
         <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
         <h2>Generator Ujian Aman</h2>
         <p>SDN Sukabumi 2 Kota Probolinggo</p>
-        
-        <div style="text-align: left; font-size: 14px; color: #555; font-weight: bold; margin-top: 10px;">Link Soal:</div>
         <input type="url" id="gformUrl" placeholder="Tempel Link Google Form di sini...">
         
-        <!-- PERBAIKAN 2: Menambahkan petunjuk tertulis yang sangat jelas untuk guru baru -->
-        <div style="text-align: left; font-size: 14px; color: #555; font-weight: bold;">Waktu pengerjaan (menit):</div>
-        <input type="number" id="examDuration" placeholder="Contoh: 60, 90, 120" min="1" value="60">
+        <input type="number" id="examDuration" placeholder="Atur Durasi Ujian (dalam menit)..." min="1" value="60">
         
         <button type="button" onclick="generateLink()">PROSES LINK UJIAN</button>
         <div id="resultArea" class="result-box">
@@ -120,10 +108,9 @@
                 </div>
             </div>
             
-            <!-- TIMER POSISI DI TENGAH (MENGGUNAKAN ABSOLUTE CSS) -->
             <div id="timer-container" class="timer-box">00:00:00</div>
             
-            <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px; z-index: 11;">Selesai</button>
+            <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px;">Selesai</button>
         </div>
         <iframe id="form-frame" src="" allow="fullscreen"></iframe>
     </div>
@@ -166,10 +153,11 @@
         let unlockingInProgress = false; 
         let wakeLock = null;
         
+        // LOGIKA VARIABLE BARU UNTUK TIMER
         let timerInterval = null;
         const urlParams = new URLSearchParams(window.location.search);
         const examUrl = urlParams.get('exam');
-        const examTimeParam = urlParams.get('time'); 
+        const examTimeParam = urlParams.get('time'); // Mengambil durasi parameter dari URL
 
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
@@ -193,9 +181,11 @@
             }
         }
 
+        // TIMER HANDLER DENGAN SISTEM PROTEKSI REFRESH NYATA
         function initTimer() {
             let endTime = localStorage.getItem('sukabumi2_endtime');
             
+            // Jika tidak ada data waktu berakhir di simpanan lokal, buat baru berdasarkan input guru
             if (!endTime) {
                 const durationMinutes = examTimeParam ? parseInt(examTimeParam) : 60;
                 endTime = Date.now() + (durationMinutes * 60 * 1000);
@@ -216,10 +206,11 @@
                 clearInterval(timerInterval);
                 timerEl.innerText = "00:00:00";
                 timerEl.classList.add('timer-warning');
-                triggerTimeOut(); 
+                triggerTimeOut(); // Eksekusi waktu habis
                 return;
             }
 
+            // Warning visual jika waktu sisa kurang dari 5 menit (300 detik)
             if (remainingSeconds < 300) {
                 timerEl.classList.add('timer-warning');
             }
@@ -234,8 +225,9 @@
                 String(seconds).padStart(2, '0');
         }
 
+        // BUNYI ALARM DAN NOTIFIKASI JIKA WAKTU HABIS
         function triggerTimeOut() {
-            protectionEnabled = false; 
+            protectionEnabled = false; // Matikan deteksi blur agar tidak dobel overlay kunci
             document.getElementById('timeout-overlay').style.display = 'flex';
             document.getElementById('form-frame').style.visibility = 'hidden';
             
@@ -243,9 +235,11 @@
                 document.exitFullscreen().catch(() => {});
             }
 
+            // Pemanggilan alarm digital
             playAlarmSound();
         }
 
+        // MEMBUNYIKAN DIGITAL ALARM TANPA FILE LUAR (WEB AUDIO API BEEP PATTERN)
         function playAlarmSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -253,7 +247,7 @@
                 let beepCount = 0;
                 
                 const alarmLoop = setInterval(() => {
-                    if (beepCount >= 6) { 
+                    if (beepCount >= 6) { // Bunyi alarm berulang 6 kali putaran
                         clearInterval(alarmLoop);
                         return;
                     }
@@ -265,15 +259,15 @@
                     gainNode.connect(audioCtx.destination);
                     
                     oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(950, audioCtx.currentTime); 
-                    gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime); 
+                    oscillator.frequency.setValueAtTime(950, audioCtx.currentTime); // Frekuensi nada tinggi melengking
+                    gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime); // Volume kontrol
                     
                     oscillator.start();
-                    oscillator.stop(audioCtx.currentTime + 0.4); 
+                    oscillator.stop(audioCtx.currentTime + 0.4); // Lama bunyi per hit 0.4 detik
                     beepCount++;
-                }, 800); 
+                }, 800); // Jeda per bunyi alarm
             } catch (e) {
-                console.log("Audio API blocked or not supported.", e);
+                console.log("Audio API gagal dimuat/diblokir oleh browser policy.", e);
             }
         }
 
@@ -323,7 +317,7 @@
             document.getElementById('kiosk-gate').style.display = 'none';
             document.getElementById('exam-mode').style.display = 'flex';
             
-            initTimer(); 
+            initTimer(); // Memulai hitung mundur timer saat tombol start ditekan
 
             setTimeout(() => {
                 protectionEnabled = true;
@@ -339,7 +333,7 @@
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
                 document.getElementById('exam-mode').style.display = 'flex';
                 protectionEnabled = true;
-                initTimer(); 
+                initTimer(); // Timer tetap lanjut berjalan walaupun sedang dihukum terkunci
                 lockNow();
             } else {
                 document.getElementById('kiosk-gate').style.display = 'flex';
@@ -364,6 +358,7 @@
             });
         }
 
+        // LOGIKA PENYESUAIAN GENERATE LINK BERSAMA DATA DURASI MENIT
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             let duration = document.getElementById('examDuration').value;
@@ -373,6 +368,7 @@
             
             if(url.includes('/viewform')) url = url.split('?')[0] + '?embedded=true';
             
+            // Link menyisipkan komponen parameter penampung waktu ujian (&time=...)
             const final = window.location.origin + window.location.pathname + "?exam=" + encodeURIComponent(url) + "&time=" + duration;
             document.getElementById('generatedLink').value = final;
             document.getElementById('resultArea').style.display = 'block';
@@ -404,7 +400,7 @@
         function confirmExit() {
             clearInterval(timerInterval);
             localStorage.removeItem('sukabumi2_locked');
-            localStorage.removeItem('sukabumi2_endtime'); 
+            localStorage.removeItem('sukabumi2_endtime'); // Bersihkan sisa data limit memori timer saat keluar resmi
             if (document.fullscreenElement) {
                 document.exitFullscreen().catch(() => {});
             }
